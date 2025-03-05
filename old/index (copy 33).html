@@ -1,0 +1,1694 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #333;
+        }
+
+        .matrix-container {
+            display: grid;
+            grid-template-columns: repeat(var(--matrix-size), 1fr);
+            grid-template-rows: repeat(var(--matrix-size), 1fr);
+            gap: 1px;
+            background: #000;
+            padding: 5px;
+            border-radius: 5px;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        .cell {
+            width: 100%;
+            height: 100%;
+            background: black;
+            transition: background-color 1.5s ease-out, transform 0.3s ease-out, opacity 0.3s ease-out;
+        }
+
+        @keyframes fadeToYellow {
+            0% { background-color: black; }
+            15% { background-color: rgba(255, 235, 59, 0.1); }
+            30% { background-color: rgba(255, 235, 59, 0.3); }
+            40% { background-color: rgba(255, 235, 59, 0.4); }
+            60% { background-color: rgba(255, 235, 59, 0.4); }
+            75% { background-color: rgba(255, 235, 59, 0.3); }
+            85% { background-color: rgba(255, 235, 59, 0.2); }
+            92% { background-color: rgba(255, 235, 59, 0.1); }
+            100% { background-color: black; }
+        }
+
+        @keyframes fadeToWarmCenter {
+            0% { background-color: rgba(255, 34, 0, 0.1); }
+            10% { background-color: rgba(255, 34, 0, 0.3); }
+            20% { background-color: rgba(255, 34, 0, 0.5); }
+            30% { background-color: rgba(255, 34, 0, 0.7); }
+            40% { background-color: rgba(255, 34, 0, 0.9); }
+            50% { background-color: #ff2200; }
+            60% { background-color: #ff2200; }
+            70% { background-color: rgba(255, 34, 0, 0.9); }
+            80% { background-color: rgba(255, 34, 0, 0.7); }
+            90% { background-color: rgba(255, 34, 0, 0.4); }
+            100% { background-color: rgba(255, 34, 0, 0.1); }
+        }
+
+        @keyframes fadeToWarmMiddle {
+            0% { background-color: rgba(255, 102, 0, 0.1); }
+            10% { background-color: rgba(255, 102, 0, 0.3); }
+            20% { background-color: rgba(255, 102, 0, 0.5); }
+            30% { background-color: rgba(255, 102, 0, 0.7); }
+            40% { background-color: rgba(255, 102, 0, 0.9); }
+            50% { background-color: #ff6600; }
+            60% { background-color: #ff6600; }
+            70% { background-color: rgba(255, 102, 0, 0.8); }
+            80% { background-color: rgba(255, 102, 0, 0.6); }
+            90% { background-color: rgba(255, 102, 0, 0.3); }
+            100% { background-color: rgba(255, 102, 0, 0.1); }
+        }
+
+        @keyframes fadeToWarmOuter {
+            0% { background-color: rgba(255, 153, 0, 0.1); }
+            10% { background-color: rgba(255, 153, 0, 0.2); }
+            20% { background-color: rgba(255, 153, 0, 0.3); }
+            30% { background-color: rgba(255, 153, 0, 0.4); }
+            40% { background-color: rgba(255, 153, 0, 0.5); }
+            50% { background-color: #ff9900; }
+            60% { background-color: #ff9900; }
+            70% { background-color: rgba(255, 153, 0, 0.6); }
+            80% { background-color: rgba(255, 153, 0, 0.4); }
+            90% { background-color: rgba(255, 153, 0, 0.2); }
+            100% { background-color: rgba(255, 153, 0, 0.1); }
+        }
+
+        @keyframes fadeToEdge {
+            0% { background-color: rgba(255, 235, 59, 0.05); }
+            10% { background-color: rgba(255, 235, 59, 0.08); }
+            20% { background-color: rgba(255, 235, 59, 0.12); }
+            30% { background-color: rgba(255, 235, 59, 0.15); }
+            40% { background-color: rgba(255, 235, 59, 0.2); }
+            50% { background-color: rgba(255, 235, 59, 0.25); }
+            60% { background-color: rgba(255, 235, 59, 0.25); }
+            70% { background-color: rgba(255, 235, 59, 0.2); }
+            80% { background-color: rgba(255, 235, 59, 0.15); }
+            90% { background-color: rgba(255, 235, 59, 0.1); }
+            100% { background-color: rgba(255, 235, 59, 0.05); }
+        }
+
+        /* Изменяем стили для выдвигающегося меню */
+        .settings-panel {
+            position: fixed;
+            left: -350px;
+            top: 0;
+            width: 350px;
+            height: 100%;
+            background: rgba(30, 30, 30, 0.95);
+            color: #fff;
+            transition: left 0.3s ease-in-out;
+            z-index: 1000;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .settings-panel.open {
+            left: 0;
+        }
+
+        /* Удаляем вкладку и добавляем подсказку о клавише */
+        .key-hint {
+            position: fixed;
+            left: 20px;
+            bottom: 20px;
+            background: rgba(30, 30, 30, 0.7);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+            z-index: 999;
+        }
+
+        .key-hint:hover {
+            opacity: 1;
+        }
+
+        .key-hint kbd {
+            background: #555;
+            border-radius: 3px;
+            padding: 2px 5px;
+            margin: 0 3px;
+        }
+
+        .settings-content {
+            padding: 20px;
+        }
+
+        .settings-section {
+            margin-bottom: 20px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 15px;
+        }
+
+        .settings-section h3 {
+            margin-top: 0;
+            color: #ff9900;
+        }
+
+        .settings-row {
+            margin-bottom: 10px;
+        }
+
+        .settings-row label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .settings-row input[type="range"] {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+
+        .range-values {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .current-value {
+            text-align: center;
+            font-weight: bold;
+            color: #ff9900;
+            font-size: 14px;
+        }
+
+        .settings-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .settings-button {
+            padding: 10px 15px;
+            background: #ff6600;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .settings-button:hover {
+            background: #ff9900;
+        }
+
+        .settings-button.random {
+            background: #2196F3;
+        }
+
+        .settings-button.random:hover {
+            background: #42A5F5;
+        }
+    </style>
+</head>
+<body>
+    <div class="matrix-container" id="matrix"></div>
+
+    <!-- Добавляем панель настроек (без вкладки) -->
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-content">
+            <h2>Настройки анимации</h2>
+            
+            <div class="settings-section">
+                <h3>Основные параметры</h3>
+                <div class="settings-row">
+                    <label for="matrixSize">Размер матрицы</label>
+                    <input type="range" id="matrixSize" min="32" max="256" step="16" value="164">
+                    <div class="range-values">
+                        <span>32</span>
+                        <span class="current-value" id="matrixSizeValue">164</span>
+                        <span>256</span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <label for="groupsCount">Количество групп</label>
+                    <input type="range" id="groupsCount" min="10" max="200" step="5" value="154">
+                    <div class="range-values">
+                        <span>10</span>
+                        <span class="current-value" id="groupsCountValue">154</span>
+                        <span>200</span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <label for="maxGroupSize">Максимальный размер группы</label>
+                    <input type="range" id="maxGroupSize" min="100" max="2000" step="50" value="1628">
+                    <div class="range-values">
+                        <span>100</span>
+                        <span class="current-value" id="maxGroupSizeValue">1628</span>
+                        <span>2000</span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <label for="minActiveGroups">Минимум активных групп</label>
+                    <input type="range" id="minActiveGroups" min="1" max="10" step="1" value="3">
+                    <div class="range-values">
+                        <span>1</span>
+                        <span class="current-value" id="minActiveGroupsValue">3</span>
+                        <span>10</span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <label for="maxActiveGroups">Максимум активных групп</label>
+                    <input type="range" id="maxActiveGroups" min="5" max="30" step="1" value="12">
+                    <div class="range-values">
+                        <span>5</span>
+                        <span class="current-value" id="maxActiveGroupsValue">12</span>
+                        <span>30</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <h3>Время жизни</h3>
+                <div class="settings-row">
+                    <label for="lifetimeMin">Минимальное время жизни (мс)</label>
+                    <input type="range" id="lifetimeMin" min="500" max="10000" step="100" value="1500">
+                    <div class="range-values">
+                        <span>500</span>
+                        <span class="current-value" id="lifetimeMinValue">1500</span>
+                        <span>10000</span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <label for="lifetimeMax">Максимальное время жизни (мс)</label>
+                    <input type="range" id="lifetimeMax" min="5000" max="60000" step="1000" value="45000">
+                    <div class="range-values">
+                        <span>5000</span>
+                        <span class="current-value" id="lifetimeMaxValue">45000</span>
+                        <span>60000</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <h3>Фазы анимации</h3>
+                <div class="settings-row">
+                    <label for="appearanceDuration">Длительность появления (%)</label>
+                    <input type="range" id="appearanceDuration" min="5" max="30" step="1" value="15">
+                    <div class="range-values">
+                        <span>5%</span>
+                        <span class="current-value" id="appearanceDurationValue">15%</span>
+                        <span>30%</span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <label for="holdDuration">Длительность удержания (%)</label>
+                    <input type="range" id="holdDuration" min="40" max="90" step="1" value="75">
+                    <div class="range-values">
+                        <span>40%</span>
+                        <span class="current-value" id="holdDurationValue">75%</span>
+                        <span>90%</span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <label for="fadeDuration">Длительность затухания (%)</label>
+                    <input type="range" id="fadeDuration" min="5" max="30" step="1" value="20">
+                    <div class="range-values">
+                        <span>5%</span>
+                        <span class="current-value" id="fadeDurationValue">20%</span>
+                        <span>30%</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <h3>Движение центров</h3>
+                <div class="settings-row">
+                    <label for="minRadius">Минимальный радиус</label>
+                    <input type="range" id="minRadius" min="0" max="10" step="0.5" value="2">
+                    <div class="range-values">
+                        <span>0</span>
+                        <span class="current-value" id="minRadiusValue">2</span>
+                        <span>10</span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <label for="maxRadius">Максимальный радиус</label>
+                    <input type="range" id="maxRadius" min="2" max="20" step="0.5" value="8">
+                    <div class="range-values">
+                        <span>2</span>
+                        <span class="current-value" id="maxRadiusValue">8</span>
+                        <span>20</span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <label for="evolventeFactor">Вероятность эвольвенты</label>
+                    <input type="range" id="evolventeFactor" min="0" max="1" step="0.05" value="0.6">
+                    <div class="range-values">
+                        <span>0</span>
+                        <span class="current-value" id="evolventeFactorValue">0.6</span>
+                        <span>1</span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <label for="evolventeBaseRadius">Базовый радиус эвольвенты</label>
+                    <input type="range" id="evolventeBaseRadius" min="1" max="20" step="0.5" value="8">
+                    <div class="range-values">
+                        <span>1</span>
+                        <span class="current-value" id="evolventeBaseRadiusValue">8</span>
+                        <span>20</span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <label for="evolventeUnwrapSpeed">Скорость разворачивания (×1000)</label>
+                    <input type="range" id="evolventeUnwrapSpeed" min="0.1" max="5" step="0.1" value="2">
+                    <div class="range-values">
+                        <span>0.1</span>
+                        <span class="current-value" id="evolventeUnwrapSpeedValue">2</span>
+                        <span>5</span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <label for="evolventeScaleEffect">Масштаб эффекта</label>
+                    <input type="range" id="evolventeScaleEffect" min="0.5" max="3" step="0.1" value="1.5">
+                    <div class="range-values">
+                        <span>0.5</span>
+                        <span class="current-value" id="evolventeScaleEffectValue">1.5</span>
+                        <span>3</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <h3>Масштабирование групп</h3>
+                <div class="settings-row">
+                    <label for="minScale">Минимальный масштаб</label>
+                    <input type="range" id="minScale" min="0.2" max="1" step="0.05" value="0.7">
+                    <div class="range-values">
+                        <span>0.2</span>
+                        <span class="current-value" id="minScaleValue">0.7</span>
+                        <span>1</span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <label for="maxScale">Максимальный масштаб</label>
+                    <input type="range" id="maxScale" min="1" max="2" step="0.05" value="1.3">
+                    <div class="range-values">
+                        <span>1</span>
+                        <span class="current-value" id="maxScaleValue">1.3</span>
+                        <span>2</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <h3>Рваные края</h3>
+                <div class="settings-row">
+                    <label for="edgeRoughnessEnabled">Включить рваные края</label>
+                    <input type="checkbox" id="edgeRoughnessEnabled" checked>
+                </div>
+                <div class="settings-row">
+                    <label for="edgeMaxDepth">Максимальная глубина</label>
+                    <input type="range" id="edgeMaxDepth" min="0.1" max="0.8" step="0.05" value="0.4">
+                    <div class="range-values">
+                        <span>0.1</span>
+                        <span class="current-value" id="edgeMaxDepthValue">0.4</span>
+                        <span>0.8</span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <label for="edgeMinDensity">Минимальная плотность</label>
+                    <input type="range" id="edgeMinDensity" min="0" max="0.5" step="0.05" value="0.2">
+                    <div class="range-values">
+                        <span>0</span>
+                        <span class="current-value" id="edgeMinDensityValue">0.2</span>
+                        <span>0.5</span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <label for="edgeMaxDensity">Максимальная плотность</label>
+                    <input type="range" id="edgeMaxDensity" min="0.5" max="1" step="0.05" value="0.8">
+                    <div class="range-values">
+                        <span>0.5</span>
+                        <span class="current-value" id="edgeMaxDensityValue">0.8</span>
+                        <span>1</span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <label for="edgeRandomness">Случайность</label>
+                    <input type="range" id="edgeRandomness" min="0" max="1" step="0.05" value="0.7">
+                    <div class="range-values">
+                        <span>0</span>
+                        <span class="current-value" id="edgeRandomnessValue">0.7</span>
+                        <span>1</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <h3>Центры групп</h3>
+                <div class="settings-row">
+                    <label for="dynamicCentersAdjustment">Динамическая корректировка центров</label>
+                    <input type="checkbox" id="dynamicCentersAdjustment" checked>
+                </div>
+                <div class="settings-row">
+                    <label for="centersFactor">Коэффициент количества центров</label>
+                    <input type="range" id="centersFactor" min="0.1" max="0.8" step="0.05" value="0.3">
+                    <div class="range-values">
+                        <span>0.1</span>
+                        <span class="current-value" id="centersFactorValue">0.3</span>
+                        <span>0.8</span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <label for="minCenters">Минимум центров</label>
+                    <input type="range" id="minCenters" min="1" max="20" step="1" value="5">
+                    <div class="range-values">
+                        <span>1</span>
+                        <span class="current-value" id="minCentersValue">5</span>
+                        <span>20</span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <label for="maxCenters">Максимум центров</label>
+                    <input type="range" id="maxCenters" min="20" max="100" step="5" value="50">
+                    <div class="range-values">
+                        <span>20</span>
+                        <span class="current-value" id="maxCentersValue">50</span>
+                        <span>100</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <h3>Градиент плотности</h3>
+                <div class="settings-row">
+                    <label for="edgeGradientStart">Начало градиента плотности</label>
+                    <input type="range" id="edgeGradientStart" min="0.1" max="0.9" step="0.05" value="0.5">
+                    <div class="range-values">
+                        <span>0.1</span>
+                        <span class="current-value" id="edgeGradientStartValue">0.5</span>
+                        <span>0.9</span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <label for="edgeGradientPower">Степень нарастания</label>
+                    <input type="range" id="edgeGradientPower" min="0.5" max="5" step="0.1" value="2.0">
+                    <div class="range-values">
+                        <span>0.5</span>
+                        <span class="current-value" id="edgeGradientPowerValue">2.0</span>
+                        <span>5</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="settings-buttons">
+                <button class="settings-button" id="applySettings">Применить</button>
+                <button class="settings-button random" id="randomizeSettings">Случайные настройки</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Добавляем подсказку о клавише -->
+    <div class="key-hint" id="keyHint">
+        Нажмите <kbd>Z</kbd> для открытия настроек
+    </div>
+
+    <script>
+        const matrix = document.getElementById('matrix');
+        const cells = [];
+        const groups = [];
+        let GROUPS_COUNT = 154;
+        let MATRIX_SIZE = 164;
+        let CELLS_COUNT = MATRIX_SIZE * MATRIX_SIZE;
+        let MAX_GROUP_SIZE = 1628;
+
+        // Добавляем новые константы
+        let MIN_ACTIVE_GROUPS = 2;
+        let MAX_ACTIVE_GROUPS = 9;
+        let activeGroups = 0;
+
+        // Добавляем новую константу
+        let SIMULTANEOUS_GROUPS = Math.floor(GROUPS_COUNT * 0.7); // 70% групп могут быть активны одновременно
+
+        // Устанавливаем CSS переменную для размера матрицы
+        document.documentElement.style.setProperty('--matrix-size', MATRIX_SIZE);
+
+        // Создаем матрицу 64x64
+        for (let i = 0; i < CELLS_COUNT; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            matrix.appendChild(cell);
+            cells.push(cell);
+        }
+
+        // Обновляем параметры движения центров
+        const ANIMATION_PARAMS = {
+            // Параметры времени жизни групп
+            lifetime: {
+                min: 1500,    // минимальное время жизни группы (15 секунд)
+                max: 45000     // максимальное время жизни группы (45 секунд)
+            },
+            // Параметры пауз
+            pause: {
+                min: 200,     // минимальная пауза между анимациями
+                max: 8000,     // максимальная пауза между анимациями
+                beforeStart: {
+                    min: 200,  // минимальная пауза перед стартом
+                    max: 8000   // максимальная пауза перед стартом
+                }
+            },
+            // Параметры этапов анимации (в процентах от общей длительности)
+            phases: {
+                appearance: {
+                    duration: 0.15,    // длительность появления (15%)
+                    easing: 0.3        // плавность появления
+                },
+                hold: {
+                    duration: 0.75     // длительность удержания (65%)
+                },
+                fade: {
+                    duration: 0.2,     // длительность затухания (20%)
+                    easing: 0.4        // плавность затухания
+                }
+            },
+            // Параметры распространения
+            spread: {
+                probability: 0.7,      // вероятность распространения на соседа
+                quickRestartChance: 0.3  // шанс быстрого перезапуска
+            },
+            merge: {
+                distance: 0.2,     // Расстояние, на котором начинается слияние (в % от размера матрицы)
+                duration: 0.3,     // Длительность слияния (в % от времени жизни)
+                threshold: 10      // Минимальное расстояние для слияния
+            },
+            // Добавляем параметры для изменения размеров группы
+            groupSizing: {
+                minScale: 0.7,      // Минимальный масштаб группы при сближении
+                maxScale: 1.3,      // Максимальный масштаб группы при сближении
+                distanceEffect: 0.4  // Влияние расстояния на размер (0-1)
+            },
+            // Добавляем параметры движения центров
+            centerMovement: {
+                minRadius: 2,       // Минимальный радиус движения
+                maxRadius: 8,       // Максимальный радиус движения
+                maxSpeed: 0.0015,   // Максимальная скорость движения (радиан за мс)
+                radiusChangeSpeed: 0.00005, // Скорость изменения радиуса
+                speedVariation: 0.3,  // Вариация скорости (для гауссова распределения)
+                evolventeFactor: 0.6, // Увеличиваем вероятность использования эвольвенты (было 0.2)
+                evolvente: {
+                    baseRadius: 8,    // Увеличиваем базовый радиус (было 4)
+                    unwrapSpeed: 0.002, // Увеличиваем скорость разворачивания (было 0.0008)
+                    initialUnwrap: 0.5, // Начальный разворот эвольвенты
+                    maxUnwrap: 12,     // Максимальный разворот эвольвенты
+                    scaleEffect: 1.5   // Коэффициент усиления эффекта
+                }
+            },
+            // Добавляем параметры для рваных краев
+            edgeRoughness: {
+                enabled: true,
+                maxDepth: 0.4,       // Максимальная глубина рваного края (доля от радиуса группы)
+                minDensity: 0.2,     // Минимальная плотность черных ячеек
+                maxDensity: 0.8,     // Максимальная плотность черных ячеек
+                randomness: 0.7,     // Степень случайности (0-1)
+                gradientStart: 0.5,  // Начало градиента плотности (доля от радиуса)
+                gradientPower: 2.0   // Степень нарастания плотности (1.0 = линейно, >1.0 = экспоненциально)
+            },
+            // Добавляем параметр для контроля количества центров
+            groupCenters: {
+                baseFactor: 0.3,     // Базовый коэффициент для расчета количества центров
+                minCenters: 5,       // Минимальное количество центров
+                maxCenters: 50,      // Максимальное количество центров
+                dynamicAdjustment: true  // Динамическая корректировка в зависимости от количества групп
+            }
+        };
+
+        // Структура для хранения информации о движении центров
+        const centerMovements = new Map(); // Map(groupId => {angle, radius, radiusDirection, speed})
+
+        // Функция для инициализации движения центра
+        function initCenterMovement(groupId) {
+            const useEvolvente = Math.random() < ANIMATION_PARAMS.centerMovement.evolventeFactor;
+            
+            centerMovements.set(groupId, {
+                angle: Math.random() * Math.PI * 2, // Случайный начальный угол
+                radius: ANIMATION_PARAMS.centerMovement.minRadius + 
+                    Math.random() * (ANIMATION_PARAMS.centerMovement.maxRadius - ANIMATION_PARAMS.centerMovement.minRadius),
+                radiusDirection: Math.random() > 0.5 ? 1 : -1, // Случайное направление изменения радиуса
+                speed: getGaussianRandom(ANIMATION_PARAMS.centerMovement.maxSpeed / 2, 
+                    ANIMATION_PARAMS.centerMovement.maxSpeed * ANIMATION_PARAMS.centerMovement.speedVariation),
+                // Параметры для эвольвенты
+                useEvolvente: useEvolvente,
+                evolvente: {
+                    baseRadius: ANIMATION_PARAMS.centerMovement.evolvente.baseRadius * 
+                        (0.8 + Math.random() * 0.4), // Более стабильный радиус
+                    unwrapAngle: ANIMATION_PARAMS.centerMovement.evolvente.initialUnwrap * Math.random(), // Начинаем с небольшого разворота
+                    unwrapSpeed: ANIMATION_PARAMS.centerMovement.evolvente.unwrapSpeed * 
+                        (0.9 + Math.random() * 0.2), // Более стабильная скорость
+                    startAngle: Math.random() * Math.PI * 2,
+                    direction: Math.random() > 0.5 ? 1 : -1 // Направление разворачивания
+                }
+            });
+        }
+
+        // Функция для получения случайного числа с гауссовым распределением
+        function getGaussianRandom(mean, stdDev) {
+            let u = 0, v = 0;
+            while (u === 0) u = Math.random(); // Избегаем логарифм от нуля
+            while (v === 0) v = Math.random();
+            const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+            return z * stdDev + mean;
+        }
+
+        // Функция для вычисления координат точки на эвольвенте окружности
+        function calculateEvolventePoint(baseRadius, angle, unwrapAngle, direction = 1) {
+            // Параметрические уравнения эвольвенты окружности:
+            // x = r * (cos(t) + t * sin(t))
+            // y = r * (sin(t) - t * cos(t))
+            // где t - параметр (угол разворачивания), r - радиус базовой окружности
+            
+            const t = unwrapAngle * direction;
+            
+            // Усиливаем эффект эвольвенты
+            const scaleEffect = ANIMATION_PARAMS.centerMovement.evolvente.scaleEffect;
+            const x = baseRadius * (Math.cos(t) + t * Math.sin(t)) * scaleEffect;
+            const y = baseRadius * (Math.sin(t) - t * Math.cos(t)) * scaleEffect;
+            
+            // Поворачиваем точку на угол angle
+            const rotatedX = x * Math.cos(angle) - y * Math.sin(angle);
+            const rotatedY = x * Math.sin(angle) + y * Math.cos(angle);
+            
+            return { x: rotatedX, y: rotatedY };
+        }
+
+        // Функция для обновления положения центра
+        function updateCenterPosition(groupId, baseCenter, elapsedTime) {
+            if (!centerMovements.has(groupId)) {
+                initCenterMovement(groupId);
+            }
+
+            const movement = centerMovements.get(groupId);
+            
+            let offsetX, offsetY;
+            
+            if (movement.useEvolvente) {
+                // Обновляем угол разворачивания эвольвенты
+                movement.evolvente.unwrapAngle += movement.evolvente.unwrapSpeed * elapsedTime;
+                
+                // Ограничиваем максимальный разворот
+                if (movement.evolvente.unwrapAngle > ANIMATION_PARAMS.centerMovement.evolvente.maxUnwrap) {
+                    // Сбрасываем эвольвенту с новым начальным углом
+                    movement.evolvente.unwrapAngle = ANIMATION_PARAMS.centerMovement.evolvente.initialUnwrap * Math.random();
+                    movement.evolvente.startAngle = Math.random() * Math.PI * 2;
+                    movement.evolvente.direction *= -1; // Меняем направление разворачивания
+                }
+                
+                // Вычисляем координаты на эвольвенте
+                const evolventePoint = calculateEvolventePoint(
+                    movement.evolvente.baseRadius,
+                    movement.evolvente.startAngle,
+                    movement.evolvente.unwrapAngle,
+                    movement.evolvente.direction
+                );
+                
+                offsetX = evolventePoint.x;
+                offsetY = evolventePoint.y;
+                
+                // Ограничиваем максимальное расстояние от центра
+                const distance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
+                if (distance > ANIMATION_PARAMS.centerMovement.maxRadius * 3) {
+                    // Если точка ушла слишком далеко, сбрасываем эвольвенту
+                    movement.evolvente.unwrapAngle = ANIMATION_PARAMS.centerMovement.evolvente.initialUnwrap * Math.random();
+                    movement.evolvente.startAngle = Math.random() * Math.PI * 2;
+                }
+            } else {
+                // Стандартное круговое движение
+                // Обновляем угол в зависимости от скорости и времени
+                movement.angle += movement.speed * elapsedTime;
+                
+                // Обновляем радиус
+                movement.radius += movement.radiusDirection * 
+                    ANIMATION_PARAMS.centerMovement.radiusChangeSpeed * elapsedTime;
+                
+                // Проверяем границы радиуса и меняем направление при необходимости
+                if (movement.radius > ANIMATION_PARAMS.centerMovement.maxRadius) {
+                    movement.radius = ANIMATION_PARAMS.centerMovement.maxRadius;
+                    movement.radiusDirection = -1;
+                } else if (movement.radius < ANIMATION_PARAMS.centerMovement.minRadius) {
+                    movement.radius = ANIMATION_PARAMS.centerMovement.minRadius;
+                    movement.radiusDirection = 1;
+                }
+                
+                // Случайно меняем направление и скорость с небольшой вероятностью
+                if (Math.random() < 0.001) {
+                    movement.radiusDirection *= -1;
+                    movement.speed = getGaussianRandom(ANIMATION_PARAMS.centerMovement.maxSpeed / 2, 
+                        ANIMATION_PARAMS.centerMovement.maxSpeed * ANIMATION_PARAMS.centerMovement.speedVariation);
+                }
+                
+                // Вычисляем новые координаты
+                offsetX = Math.cos(movement.angle) * movement.radius;
+                offsetY = Math.sin(movement.angle) * movement.radius;
+            }
+            
+            // Увеличиваем вероятность переключения на эвольвенту
+            if (Math.random() < 0.002) { // Увеличено с 0.0005
+                movement.useEvolvente = !movement.useEvolvente;
+                if (movement.useEvolvente) {
+                    // Инициализируем параметры эвольвенты при переключении
+                    movement.evolvente.unwrapAngle = ANIMATION_PARAMS.centerMovement.evolvente.initialUnwrap * Math.random();
+                    movement.evolvente.startAngle = Math.random() * Math.PI * 2;
+                    movement.evolvente.direction = Math.random() > 0.5 ? 1 : -1;
+                }
+            }
+            
+            return {
+                x: baseCenter.x + offsetX,
+                y: baseCenter.y + offsetY
+            };
+        }
+
+        function getRandomDuration() {
+            return Math.random() * 
+                (ANIMATION_PARAMS.lifetime.max - ANIMATION_PARAMS.lifetime.min) + 
+                ANIMATION_PARAMS.lifetime.min;
+        }
+
+        function getRandomPauseBeforeStart() {
+            return Math.random() * 
+                (ANIMATION_PARAMS.pause.beforeStart.max - ANIMATION_PARAMS.pause.beforeStart.min) + 
+                ANIMATION_PARAMS.pause.beforeStart.min;
+        }
+
+        function getRandomDelay() {
+            return Math.random() * 
+                (ANIMATION_PARAMS.pause.max - ANIMATION_PARAMS.pause.min) + 
+                ANIMATION_PARAMS.pause.min;
+        }
+
+        function getRandomBezier() {
+            const x1 = (Math.random() * 0.2).toFixed(2);
+            const y1 = (Math.random() * 0.4).toFixed(2);
+            const x2 = (Math.random() * 0.3 + 0.4).toFixed(2);
+            const y2 = (Math.random() * 0.4 + 0.3).toFixed(2);
+            return `cubic-bezier(${x1}, ${y1}, ${x2}, ${y2})`;
+        }
+
+        function getNeighbors(index) {
+            const row = Math.floor(index / MATRIX_SIZE);
+            const col = index % MATRIX_SIZE;
+            const neighbors = [];
+            
+            [[-1,-1], [-1,0], [-1,1], [0,-1], [0,1], [1,-1], [1,0], [1,1]].forEach(([dx, dy]) => {
+                const newRow = row + dx;
+                const newCol = col + dy;
+                if (newRow >= 0 && newRow < MATRIX_SIZE && newCol >= 0 && newCol < MATRIX_SIZE) {
+                    neighbors.push(newRow * MATRIX_SIZE + newCol);
+                }
+            });
+            
+            return neighbors;
+        }
+
+        function calculateDistanceFromCenter(cell, centerCell) {
+            const cellRow = Math.floor(cell / MATRIX_SIZE);
+            const cellCol = cell % MATRIX_SIZE;
+            const centerRow = Math.floor(centerCell / MATRIX_SIZE);
+            const centerCol = centerCell % MATRIX_SIZE;
+            
+            return Math.sqrt(
+                Math.pow(cellRow - centerRow, 2) + 
+                Math.pow(cellCol - centerCol, 2)
+            );
+        }
+
+        // Функция для расчета количества центров на основе количества групп
+        function calculateCentersCount() {
+            if (!ANIMATION_PARAMS.groupCenters.dynamicAdjustment) {
+                return Math.floor(GROUPS_COUNT * ANIMATION_PARAMS.groupCenters.baseFactor);
+            }
+            
+            // Базовое количество центров на основе коэффициента
+            let centersCount = Math.floor(GROUPS_COUNT * ANIMATION_PARAMS.groupCenters.baseFactor);
+            
+            // Ограничиваем минимальным и максимальным значением
+            centersCount = Math.max(centersCount, ANIMATION_PARAMS.groupCenters.minCenters);
+            centersCount = Math.min(centersCount, ANIMATION_PARAMS.groupCenters.maxCenters);
+            
+            // Добавляем небольшую случайность
+            const randomFactor = 0.8 + Math.random() * 0.4; // 0.8 - 1.2
+            centersCount = Math.floor(centersCount * randomFactor);
+            
+            return centersCount;
+        }
+
+        // Модифицируем функцию getFixedStartingPoints для использования динамического количества центров
+        function getFixedStartingPoints() {
+            // Определяем количество центров
+            const centersCount = calculateCentersCount();
+            
+            // Вычисляем размер сетки на основе количества центров
+            // Используем квадратный корень для создания примерно квадратной сетки
+            const gridSize = Math.ceil(Math.sqrt(centersCount));
+            
+            const cellsPerSection = MATRIX_SIZE / gridSize; // количество ячеек между точками
+            const offset = Math.floor(cellsPerSection / 2); // смещение от края секции
+            
+            const points = [];
+            
+            // Создаем сетку точек
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    // Добавляем случайное смещение для более естественного расположения
+                    const randomOffsetX = Math.floor((Math.random() - 0.5) * cellsPerSection * 0.5);
+                    const randomOffsetY = Math.floor((Math.random() - 0.5) * cellsPerSection * 0.5);
+                    
+                    const x = Math.floor(i * cellsPerSection + offset) + randomOffsetX;
+                    const y = Math.floor(j * cellsPerSection + offset) + randomOffsetY;
+                    
+                    // Проверяем, что точка находится в пределах матрицы
+                    if (x >= 0 && x < MATRIX_SIZE && y >= 0 && y < MATRIX_SIZE) {
+                        points.push({ x, y });
+                    }
+                }
+            }
+            
+            // Если получилось больше точек, чем нужно, случайно удаляем лишние
+            while (points.length > centersCount) {
+                const randomIndex = Math.floor(Math.random() * points.length);
+                points.splice(randomIndex, 1);
+            }
+            
+            // Если получилось меньше точек, чем нужно, добавляем случайные
+            while (points.length < centersCount) {
+                const x = Math.floor(Math.random() * MATRIX_SIZE);
+                const y = Math.floor(Math.random() * MATRIX_SIZE);
+                points.push({ x, y });
+            }
+            
+            return points;
+        }
+
+        function createGroup(groupId, usedCells, availableStartPoints) {
+            const group = {
+                id: groupId,
+                cells: [],
+                cellsWithDistance: [],
+                duration: getRandomDuration(),
+                delay: getRandomDelay(),
+                bezier: getRandomBezier()
+            };
+
+            // Выбираем случайную точку из доступных фиксированных точек
+            const startPointIndex = Math.floor(Math.random() * availableStartPoints.length);
+            const startCell = availableStartPoints[startPointIndex];
+            // Удаляем использованную точку
+            availableStartPoints.splice(startPointIndex, 1);
+
+            const groupCells = new Set([startCell]);
+            const queue = [startCell];
+
+            while (queue.length > 0 && groupCells.size < MAX_GROUP_SIZE) {
+                const current = queue.shift();
+                getNeighbors(current).forEach(neighbor => {
+                    if (!usedCells.has(neighbor) && !groupCells.has(neighbor) && 
+                        Math.random() < ANIMATION_PARAMS.spread.probability) {
+                        groupCells.add(neighbor);
+                        queue.push(neighbor);
+                    }
+                });
+            }
+
+            groupCells.forEach(cellIndex => {
+                const distance = calculateDistanceFromCenter(cellIndex, startCell);
+                group.cellsWithDistance.push({
+                    cell: cells[cellIndex],
+                    distance: distance,
+                    index: cellIndex
+                });
+                usedCells.add(cellIndex);
+            });
+
+            group.cellsWithDistance.sort((a, b) => a.distance - b.distance);
+            group.cells = group.cellsWithDistance.map(item => item.cell);
+
+            return group;
+        }
+
+        // Функция для инициализации групп
+        function initializeGroups() {
+            const fixedPoints = getFixedStartingPoints();
+            
+            for (let i = 0; i < GROUPS_COUNT; i++) {
+                const group = {
+                    id: i,
+                    cellsWithDistance: []
+                };
+                
+                // Выбираем случайную точку из фиксированных или случайную ячейку
+                let centerIndex;
+                if (fixedPoints.length > 0 && Math.random() < 0.8) {
+                    // Используем фиксированную точку
+                    const pointIndex = Math.floor(Math.random() * fixedPoints.length);
+                    const point = fixedPoints[pointIndex];
+                    // Преобразуем координаты в индекс
+                    centerIndex = point.y * MATRIX_SIZE + point.x;
+                    // Удаляем использованную точку
+                    fixedPoints.splice(pointIndex, 1);
+                } else {
+                    // Используем случайную ячейку
+                    centerIndex = Math.floor(Math.random() * CELLS_COUNT);
+                }
+                
+                // Создаем группу с центром в выбранной ячейке
+                const centerRow = Math.floor(centerIndex / MATRIX_SIZE);
+                const centerCol = centerIndex % MATRIX_SIZE;
+                
+                // Собираем все ячейки с их расстояниями от центра
+                const cellsWithDistance = [];
+                
+                for (let j = 0; j < CELLS_COUNT; j++) {
+                    const row = Math.floor(j / MATRIX_SIZE);
+                    const col = j % MATRIX_SIZE;
+                    
+                    // Вычисляем расстояние от центра
+                    const distance = Math.sqrt(
+                        Math.pow(row - centerRow, 2) + 
+                        Math.pow(col - centerCol, 2)
+                    );
+                    
+                    // Добавляем ячейку с расстоянием
+                    cellsWithDistance.push({
+                        cell: cells[j],
+                        distance: distance,
+                        index: j
+                    });
+                }
+                
+                // Сортируем ячейки по расстоянию от центра
+                cellsWithDistance.sort((a, b) => a.distance - b.distance);
+                
+                // Ограничиваем размер группы
+                const maxSize = Math.min(MAX_GROUP_SIZE, cellsWithDistance.length);
+                group.cellsWithDistance = cellsWithDistance.slice(0, maxSize);
+                
+                // Генерируем кривую Безье для анимации
+                group.bezier = generateRandomBezier();
+                
+                // Добавляем группу в массив
+                groups.push(group);
+            }
+        }
+
+        function getRandomInitialDelay() {
+            // Используем параметры из ANIMATION_PARAMS
+            return Math.random() * 
+                (ANIMATION_PARAMS.pause.beforeStart.max * 2 - ANIMATION_PARAMS.pause.beforeStart.min) + 
+                ANIMATION_PARAMS.pause.beforeStart.min;
+        }
+
+        function updateActiveGroups(delta) {
+            activeGroups += delta;
+            return activeGroups;
+        }
+
+        // Оставляем только структуру для активных групп
+        const activeGroupCenters = new Map(); // Map(groupId => {x, y, lastUpdate})
+
+        function updateGroupCenter(groupId, center) {
+            activeGroupCenters.set(groupId, {
+                x: center.x,
+                y: center.y,
+                lastUpdate: Date.now()
+            });
+        }
+
+        function removeInactiveGroupCenters() {
+            const now = Date.now();
+            activeGroupCenters.forEach((data, groupId) => {
+                if (now - data.lastUpdate > 2000) {
+                    activeGroupCenters.delete(groupId);
+                }
+            });
+        }
+
+        function findNearestGroupCenter(currentCenter) {
+            let nearest = null;
+            let minDistance = Infinity;
+
+            removeInactiveGroupCenters();
+            
+            activeGroupCenters.forEach((center, centerId) => {
+                const distance = Math.sqrt(
+                    Math.pow(center.x - currentCenter.x, 2) + 
+                    Math.pow(center.y - currentCenter.y, 2)
+                );
+                if (distance > 0 && distance < minDistance) {
+                    minDistance = distance;
+                    nearest = center;
+                }
+            });
+
+            return nearest;
+        }
+
+        function calculateGroupScale(currentCenter, nearestCenter, maxDistance) {
+            if (!nearestCenter) return 1.0; // Стандартный масштаб
+
+            const distance = Math.sqrt(
+                Math.pow(nearestCenter.x - currentCenter.x, 2) + 
+                Math.pow(nearestCenter.y - currentCenter.y, 2)
+            );
+
+            // Нормализуем расстояние относительно размера матрицы
+            const normalizedDistance = Math.min(1, distance / (MATRIX_SIZE * 0.5));
+            
+            // Вычисляем масштаб на основе расстояния
+            // Чем ближе группы, тем больше масштаб
+            const scale = ANIMATION_PARAMS.groupSizing.maxScale - 
+                (normalizedDistance * (ANIMATION_PARAMS.groupSizing.maxScale - ANIMATION_PARAMS.groupSizing.minScale));
+            
+            return Math.max(ANIMATION_PARAMS.groupSizing.minScale, 
+                   Math.min(ANIMATION_PARAMS.groupSizing.maxScale, scale));
+        }
+
+        // Функция для определения, должна ли ячейка быть черной (рваный край)
+        function shouldBeBlackCell(distance, maxDistance, group) {
+            if (!ANIMATION_PARAMS.edgeRoughness.enabled) return false;
+            
+            // Нормализуем расстояние относительно максимального
+            const normalizedDistance = distance / maxDistance;
+            
+            // Определяем начало зоны рваного края
+            const edgeStart = 1 - ANIMATION_PARAMS.edgeRoughness.maxDepth;
+            
+            // Если ячейка не в зоне рваного края, она не должна быть черной
+            if (normalizedDistance < edgeStart) return false;
+            
+            // Вычисляем относительное положение в зоне рваного края
+            const edgePosition = (normalizedDistance - edgeStart) / (1 - edgeStart);
+            
+            // Вычисляем базовую плотность черных ячеек в зависимости от положения
+            // Чем ближе к краю, тем выше плотность
+            const baseDensity = ANIMATION_PARAMS.edgeRoughness.minDensity + 
+                (ANIMATION_PARAMS.edgeRoughness.maxDensity - ANIMATION_PARAMS.edgeRoughness.minDensity) * 
+                edgePosition;
+            
+            // Применяем градиент плотности на основе общего расстояния от центра
+            const gradientStart = ANIMATION_PARAMS.edgeRoughness.gradientStart;
+            let densityMultiplier = 1.0;
+            
+            if (normalizedDistance > gradientStart) {
+                // Вычисляем положение в градиенте
+                const gradientPosition = (normalizedDistance - gradientStart) / (1 - gradientStart);
+                
+                // Применяем нелинейное нарастание плотности
+                densityMultiplier = Math.pow(gradientPosition, ANIMATION_PARAMS.edgeRoughness.gradientPower);
+                
+                // Ограничиваем множитель для предотвращения слишком высокой плотности
+                densityMultiplier = Math.min(densityMultiplier, 1.5);
+            }
+            
+            // Применяем множитель к базовой плотности
+            let adjustedDensity = baseDensity * densityMultiplier;
+            
+            // Добавляем случайность на основе координат ячейки и ID группы
+            // для создания уникального паттерна для каждой группы
+            const randomFactor = Math.sin(distance * 0.1 + group.id * 0.7) * 0.5 + 0.5;
+            adjustedDensity = adjustedDensity * (1 - ANIMATION_PARAMS.edgeRoughness.randomness) + 
+                             adjustedDensity * ANIMATION_PARAMS.edgeRoughness.randomness * randomFactor;
+            
+            // Ограничиваем максимальную плотность
+            adjustedDensity = Math.min(adjustedDensity, 0.95);
+            
+            // Случайно определяем, должна ли ячейка быть черной
+            return Math.random() < adjustedDensity;
+        }
+
+        // Модифицируем функцию animateGroup для использования рваных краев
+        function animateGroup(group) {
+            const animate = () => {
+                updateActiveGroups(1);
+                const startTime = Date.now();
+
+                setTimeout(() => {
+                    const maxDistance = group.cellsWithDistance[group.cellsWithDistance.length - 1].distance;
+                    const centerCell = group.cellsWithDistance[0].index;
+                    const baseCenter = {
+                        x: Math.floor(centerCell / MATRIX_SIZE),
+                        y: centerCell % MATRIX_SIZE
+                    };
+
+                    // Обновляем положение центра с учетом движения по орбите
+                    const elapsedTime = Date.now() - startTime;
+                    const currentCenter = updateCenterPosition(group.id, baseCenter, elapsedTime);
+                    
+                    updateGroupCenter(group.id, currentCenter);
+                    removeInactiveGroupCenters();
+                    
+                    const nearestCenter = findNearestGroupCenter(currentCenter);
+                    const currentLifetime = getRandomDuration();
+                    
+                    const groupScale = calculateGroupScale(currentCenter, nearestCenter, maxDistance);
+                    
+                    // Создаем анимацию с учетом движения центра
+                    const animationStartTime = Date.now();
+                    
+                    // Создаем карту черных ячеек для рваных краев
+                    const blackCells = new Set();
+                    
+                    // Предварительно определяем, какие ячейки будут черными
+                    group.cellsWithDistance.forEach(({cell, distance, index}) => {
+                        if (shouldBeBlackCell(distance, maxDistance, group)) {
+                            blackCells.add(index);
+                        }
+                    });
+                    
+                    group.cellsWithDistance.forEach(({cell, distance, index}) => {
+                        // Если ячейка должна быть черной, пропускаем анимацию
+                        if (blackCells.has(index)) {
+                            cell.style.animation = '';
+                            cell.style.backgroundColor = 'black';
+                            return;
+                        }
+                        
+                        const scaledDistance = distance * groupScale;
+                        const progress = scaledDistance / (maxDistance * groupScale);
+                        const spreadDelay = progress * (currentLifetime * ANIMATION_PARAMS.phases.appearance.duration);
+
+                        setTimeout(() => {
+                            // Обновляем положение центра на момент анимации
+                            const animElapsedTime = Date.now() - animationStartTime;
+                            const animCenter = updateCenterPosition(group.id, baseCenter, animElapsedTime);
+                            
+                            // Пересчитываем расстояние от текущего положения центра
+                            const cellRow = Math.floor(index / MATRIX_SIZE);
+                            const cellCol = index % MATRIX_SIZE;
+                            const currentDistance = Math.sqrt(
+                                Math.pow(cellRow - animCenter.x, 2) + 
+                                Math.pow(cellCol - animCenter.y, 2)
+                            ) * groupScale;
+                            
+                            // Определяем тип анимации на основе текущего расстояния
+                            let animationType;
+                            const scaledMaxDistance = maxDistance * groupScale;
+                            
+                            if (currentDistance < scaledMaxDistance * 0.2) {
+                                animationType = 'fadeToWarmCenter';
+                            } else if (currentDistance < scaledMaxDistance * 0.4) {
+                                animationType = 'fadeToWarmMiddle';
+                            } else if (currentDistance < scaledMaxDistance * 0.7) {
+                                animationType = 'fadeToWarmOuter';
+                            } else {
+                                animationType = 'fadeToEdge';
+                            }
+
+                            cell.style.animation = `${animationType} ${currentLifetime}ms ${group.bezier}`;
+                        }, spreadDelay);
+
+                        const fadeStartTime = currentLifetime * ANIMATION_PARAMS.phases.hold.duration;
+                        const fadeDelay = fadeStartTime + 
+                            ((1 - progress) * (currentLifetime * ANIMATION_PARAMS.phases.fade.duration));
+
+                        setTimeout(() => {
+                            cell.style.animation = '';
+                            cell.style.backgroundColor = 'black';
+                        }, fadeDelay);
+                    });
+
+                    setTimeout(() => {
+                        const currentActive = updateActiveGroups(-1);
+                        group.duration = getRandomDuration();
+                        group.bezier = getRandomBezier();
+
+                        let nextIterationDelay;
+                        if (currentActive < MIN_ACTIVE_GROUPS) {
+                            nextIterationDelay = getRandomPauseBeforeStart();
+                        } else if (currentActive > MAX_ACTIVE_GROUPS) {
+                            nextIterationDelay = getRandomDelay() + currentLifetime;
+                        } else {
+                            nextIterationDelay = Math.random() < ANIMATION_PARAMS.spread.quickRestartChance ? 
+                                getRandomPauseBeforeStart() : 
+                                getRandomDelay() + currentLifetime * 0.5;
+                        }
+
+                        setTimeout(animate, nextIterationDelay);
+                    }, currentLifetime);
+                }, getRandomPauseBeforeStart());
+            };
+
+            animate();
+        }
+
+        // Изменяем начальный запуск групп
+        initializeGroups();
+        const initialDelays = Array(groups.length).fill(0)
+            .map((_, i) => {
+                if (i < MIN_ACTIVE_GROUPS) {
+                    // Первые группы запускаем быстро
+                    return getRandomInitialDelay() * 0.5;
+                } else if (i < SIMULTANEOUS_GROUPS) {
+                    // Следующие группы с нормальной задержкой
+                    return getRandomInitialDelay();
+                } else {
+                    // Остальные группы с увеличенной задержкой
+                    return getRandomInitialDelay() * 2;
+                }
+            });
+        
+        groups.forEach((group, index) => {
+            setTimeout(() => animateGroup(group), initialDelays[index]);
+        });
+
+        // Визуализация траектории движения (для отладки)
+        function visualizeTrajectory(groupId, baseCenter) {
+            if (!centerMovements.has(groupId)) {
+                initCenterMovement(groupId);
+            }
+            
+            const movement = centerMovements.get(groupId);
+            
+            // Создаем временный элемент для визуализации
+            const marker = document.createElement('div');
+            marker.style.position = 'absolute';
+            marker.style.width = '4px';
+            marker.style.height = '4px';
+            marker.style.backgroundColor = 'red';
+            marker.style.borderRadius = '50%';
+            marker.style.zIndex = '1000';
+            document.body.appendChild(marker);
+            
+            // Отображаем траекторию
+            let time = 0;
+            const interval = setInterval(() => {
+                time += 100;
+                
+                const position = updateCenterPosition(groupId, baseCenter, 100);
+                
+                // Преобразуем координаты матрицы в координаты экрана
+                const matrixRect = matrix.getBoundingClientRect();
+                const cellSize = matrixRect.width / MATRIX_SIZE;
+                
+                marker.style.left = (matrixRect.left + position.y * cellSize) + 'px';
+                marker.style.top = (matrixRect.top + position.x * cellSize) + 'px';
+                
+                if (time > 10000) {
+                    clearInterval(interval);
+                    document.body.removeChild(marker);
+                }
+            }, 100);
+        }
+
+        // Изменяем код для работы с панелью настроек
+        const settingsPanel = document.getElementById('settingsPanel');
+        const keyHint = document.getElementById('keyHint');
+        const applyButton = document.getElementById('applySettings');
+        const randomizeButton = document.getElementById('randomizeSettings');
+
+        // Добавляем обработчик нажатия клавиши
+        document.addEventListener('keydown', function(event) {
+            // Проверяем, что нажата клавиша 'z' или 'я' (русская раскладка)
+            if (event.key.toLowerCase() === 'z' || event.key.toLowerCase() === 'я') {
+                settingsPanel.classList.toggle('open');
+                
+                // Скрываем подсказку при первом открытии меню, если она существует
+                if (keyHint && keyHint.style.display !== 'none') {
+                    setTimeout(() => {
+                        keyHint.style.opacity = '0';
+                        setTimeout(() => {
+                            keyHint.style.display = 'none';
+                        }, 300);
+                    }, 1000);
+                }
+            }
+            
+            // Закрываем меню по Escape
+            if (event.key === 'Escape' && settingsPanel.classList.contains('open')) {
+                settingsPanel.classList.remove('open');
+            }
+        });
+
+        // Функция для обновления значений слайдеров
+        function updateSliderValues() {
+            document.querySelectorAll('input[type="range"]').forEach(slider => {
+                const valueDisplay = document.getElementById(`${slider.id}Value`);
+                if (valueDisplay) {
+                    let displayValue = slider.value;
+                    if (slider.id === 'appearanceDuration' || slider.id === 'holdDuration' || slider.id === 'fadeDuration') {
+                        displayValue += '%';
+                    }
+                    valueDisplay.textContent = displayValue;
+                }
+            });
+        }
+
+        // Добавить отдельную функцию для установки обработчиков событий
+        function setupSliderEventListeners() {
+            document.querySelectorAll('input[type="range"]').forEach(slider => {
+                slider.addEventListener('input', function() {
+                    const valueDisplay = document.getElementById(`${this.id}Value`);
+                    if (valueDisplay) {
+                        let displayValue = this.value;
+                        if (this.id === 'appearanceDuration' || this.id === 'holdDuration' || this.id === 'fadeDuration') {
+                            displayValue += '%';
+                        }
+                        valueDisplay.textContent = displayValue;
+                    }
+                });
+            });
+        }
+
+        // Функция для получения текущих настроек из слайдеров
+        function getSettingsFromSliders() {
+            // Проверяем существование элементов перед использованием
+            const minActiveGroupsElement = document.getElementById('minActiveGroups');
+            const maxActiveGroupsElement = document.getElementById('maxActiveGroups');
+            
+            const minActiveGroups = minActiveGroupsElement ? 
+                parseInt(minActiveGroupsElement.value) : MIN_ACTIVE_GROUPS;
+            const maxActiveGroups = maxActiveGroupsElement ? 
+                parseInt(maxActiveGroupsElement.value) : MAX_ACTIVE_GROUPS;
+            
+            return {
+                matrixSize: parseInt(document.getElementById('matrixSize').value),
+                groupsCount: parseInt(document.getElementById('groupsCount').value),
+                maxGroupSize: parseInt(document.getElementById('maxGroupSize').value),
+                lifetime: {
+                    min: parseInt(document.getElementById('lifetimeMin').value),
+                    max: parseInt(document.getElementById('lifetimeMax').value)
+                },
+                phases: {
+                    appearance: {
+                        duration: parseInt(document.getElementById('appearanceDuration').value) / 100,
+                        easing: 0.3
+                    },
+                    hold: {
+                        duration: parseInt(document.getElementById('holdDuration').value) / 100
+                    },
+                    fade: {
+                        duration: parseInt(document.getElementById('fadeDuration').value) / 100,
+                        easing: 0.4
+                    }
+                },
+                centerMovement: {
+                    minRadius: parseFloat(document.getElementById('minRadius').value),
+                    maxRadius: parseFloat(document.getElementById('maxRadius').value),
+                    maxSpeed: 0.0015,
+                    radiusChangeSpeed: 0.00005,
+                    speedVariation: 0.3,
+                    evolventeFactor: parseFloat(document.getElementById('evolventeFactor').value),
+                    evolvente: {
+                        baseRadius: parseFloat(document.getElementById('evolventeBaseRadius').value),
+                        unwrapSpeed: parseFloat(document.getElementById('evolventeUnwrapSpeed').value) / 1000,
+                        initialUnwrap: 0.5,
+                        maxUnwrap: 12,
+                        scaleEffect: parseFloat(document.getElementById('evolventeScaleEffect').value)
+                    }
+                },
+                groupSizing: {
+                    minScale: parseFloat(document.getElementById('minScale').value),
+                    maxScale: parseFloat(document.getElementById('maxScale').value),
+                    distanceEffect: 0.4
+                },
+                spread: {
+                    probability: 0.7,
+                    quickRestartChance: 0.3
+                },
+                pause: {
+                    min: 200,
+                    max: 8000,
+                    beforeStart: {
+                        min: 200,
+                        max: 8000
+                    }
+                },
+                minActiveGroups: minActiveGroups,
+                maxActiveGroups: maxActiveGroups,
+                edgeRoughness: {
+                    enabled: document.getElementById('edgeRoughnessEnabled').checked,
+                    maxDepth: parseFloat(document.getElementById('edgeMaxDepth').value || 0.4),
+                    minDensity: parseFloat(document.getElementById('edgeMinDensity').value || 0.2),
+                    maxDensity: parseFloat(document.getElementById('edgeMaxDensity').value || 0.8),
+                    randomness: parseFloat(document.getElementById('edgeRandomness').value || 0.7),
+                    gradientStart: parseFloat(document.getElementById('edgeGradientStart')?.value || 0.5),
+                    gradientPower: parseFloat(document.getElementById('edgeGradientPower')?.value || 2.0)
+                },
+                groupCenters: {
+                    dynamicAdjustment: document.getElementById('dynamicCentersAdjustment')?.checked || true,
+                    baseFactor: parseFloat(document.getElementById('centersFactor')?.value || 0.3),
+                    minCenters: parseInt(document.getElementById('minCenters')?.value || 5),
+                    maxCenters: parseInt(document.getElementById('maxCenters')?.value || 50)
+                }
+            };
+        }
+
+        // Функция для установки случайных настроек
+        function randomizeSettings() {
+            document.getElementById('groupsCount').value = Math.floor(Math.random() * 150) + 50;
+            document.getElementById('maxGroupSize').value = Math.floor(Math.random() * 1500) + 500;
+            document.getElementById('lifetimeMin').value = Math.floor(Math.random() * 5000) + 500;
+            document.getElementById('lifetimeMax').value = Math.floor(Math.random() * 30000) + 20000;
+            document.getElementById('appearanceDuration').value = Math.floor(Math.random() * 20) + 5;
+            document.getElementById('holdDuration').value = Math.floor(Math.random() * 30) + 60;
+            document.getElementById('fadeDuration').value = Math.floor(Math.random() * 15) + 10;
+            document.getElementById('minRadius').value = (Math.random() * 5).toFixed(1);
+            document.getElementById('maxRadius').value = (Math.random() * 10 + 5).toFixed(1);
+            document.getElementById('evolventeFactor').value = Math.random().toFixed(2);
+            document.getElementById('evolventeBaseRadius').value = (Math.random() * 15 + 3).toFixed(1);
+            document.getElementById('evolventeUnwrapSpeed').value = (Math.random() * 4 + 0.5).toFixed(1);
+            document.getElementById('evolventeScaleEffect').value = (Math.random() * 2 + 0.5).toFixed(1);
+            document.getElementById('minScale').value = (Math.random() * 0.5 + 0.3).toFixed(2);
+            document.getElementById('maxScale').value = (Math.random() * 0.5 + 1.2).toFixed(2);
+            
+            // Проверяем существование элементов перед использованием
+            const minActiveGroupsElement = document.getElementById('minActiveGroups');
+            const maxActiveGroupsElement = document.getElementById('maxActiveGroups');
+            
+            if (minActiveGroupsElement) {
+                minActiveGroupsElement.value = MIN_ACTIVE_GROUPS;
+            }
+            
+            if (maxActiveGroupsElement) {
+                maxActiveGroupsElement.value = MAX_ACTIVE_GROUPS;
+            }
+            
+            // Рандомизируем параметры рваных краев
+            const edgeRoughnessEnabled = document.getElementById('edgeRoughnessEnabled');
+            if (edgeRoughnessEnabled) {
+                edgeRoughnessEnabled.checked = Math.random() > 0.2; // 80% вероятность включения
+            }
+            
+            document.getElementById('edgeMaxDepth')?.setAttribute('value', (Math.random() * 0.5 + 0.2).toFixed(2));
+            document.getElementById('edgeMinDensity')?.setAttribute('value', (Math.random() * 0.3).toFixed(2));
+            document.getElementById('edgeMaxDensity')?.setAttribute('value', (Math.random() * 0.3 + 0.7).toFixed(2));
+            document.getElementById('edgeRandomness')?.setAttribute('value', Math.random().toFixed(2));
+            
+            // Рандомизируем параметры градиента плотности
+            const edgeGradientStart = document.getElementById('edgeGradientStart');
+            if (edgeGradientStart) {
+                edgeGradientStart.value = (Math.random() * 0.4 + 0.3).toFixed(2);
+            }
+            
+            const edgeGradientPower = document.getElementById('edgeGradientPower');
+            if (edgeGradientPower) {
+                edgeGradientPower.value = (Math.random() * 3 + 1).toFixed(1);
+            }
+            
+            // Рандомизируем параметры центров групп
+            const dynamicCentersAdjustment = document.getElementById('dynamicCentersAdjustment');
+            if (dynamicCentersAdjustment) {
+                dynamicCentersAdjustment.checked = Math.random() > 0.2; // 80% вероятность включения
+            }
+            
+            const centersFactor = document.getElementById('centersFactor');
+            if (centersFactor) {
+                centersFactor.value = (Math.random() * 0.5 + 0.2).toFixed(2);
+            }
+            
+            const minCenters = document.getElementById('minCenters');
+            if (minCenters) {
+                minCenters.value = Math.floor(Math.random() * 10 + 3);
+            }
+            
+            const maxCenters = document.getElementById('maxCenters');
+            if (maxCenters) {
+                maxCenters.value = Math.floor(Math.random() * 50 + 30);
+            }
+            
+            updateSliderValues();
+        }
+
+        // Функция для перезапуска анимации с новыми настройками
+        function restartAnimation() {
+            try {
+                // Очищаем текущую анимацию
+                cells.forEach(cell => {
+                    cell.style.animation = '';
+                });
+                
+                // Останавливаем все таймеры
+                const highestTimeoutId = setTimeout(() => {});
+                for (let i = 0; i < highestTimeoutId; i++) {
+                    clearTimeout(i);
+                }
+                
+                // Очищаем структуры данных для движения центров
+                centerMovements.clear();
+                activeGroupCenters.clear();
+                
+                // Получаем новые настройки
+                const newSettings = getSettingsFromSliders();
+                
+                // Обновляем глобальные константы
+                MATRIX_SIZE = newSettings.matrixSize;
+                GROUPS_COUNT = newSettings.groupsCount;
+                MAX_GROUP_SIZE = newSettings.maxGroupSize;
+                CELLS_COUNT = MATRIX_SIZE * MATRIX_SIZE;
+                
+                // Добавить обновление этих переменных
+                MIN_ACTIVE_GROUPS = newSettings.minActiveGroups;
+                MAX_ACTIVE_GROUPS = newSettings.maxActiveGroups;
+                
+                // Обновляем SIMULTANEOUS_GROUPS, если он используется
+                SIMULTANEOUS_GROUPS = Math.floor((MIN_ACTIVE_GROUPS + MAX_ACTIVE_GROUPS) / 2);
+                
+                // Обновляем параметры анимации
+                ANIMATION_PARAMS.lifetime = newSettings.lifetime;
+                ANIMATION_PARAMS.phases = newSettings.phases;
+                ANIMATION_PARAMS.centerMovement = newSettings.centerMovement;
+                ANIMATION_PARAMS.groupSizing = newSettings.groupSizing;
+                ANIMATION_PARAMS.spread = newSettings.spread;
+                ANIMATION_PARAMS.pause = newSettings.pause;
+                ANIMATION_PARAMS.edgeRoughness = newSettings.edgeRoughness;
+                ANIMATION_PARAMS.groupCenters = newSettings.groupCenters;
+                
+                // Пересоздаем матрицу
+                matrix.innerHTML = '';
+                cells.length = 0;
+                groups.length = 0;
+                activeGroups = 0;
+                
+                // Устанавливаем CSS переменную для размера матрицы
+                document.documentElement.style.setProperty('--matrix-size', MATRIX_SIZE);
+                
+                // Создаем новую матрицу
+                for (let i = 0; i < CELLS_COUNT; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    matrix.appendChild(cell);
+                    cells.push(cell);
+                }
+                
+                // Инициализируем и запускаем группы
+                initializeGroups();
+                const initialDelays = Array(groups.length).fill(0)
+                    .map((_, i) => {
+                        if (i < MIN_ACTIVE_GROUPS) {
+                            return getRandomInitialDelay() * 0.5;
+                        } else if (i < SIMULTANEOUS_GROUPS) {
+                            return getRandomInitialDelay();
+                        } else {
+                            return getRandomInitialDelay() * 2;
+                        }
+                    });
+                
+                groups.forEach((group, index) => {
+                    setTimeout(() => animateGroup(group), initialDelays[index]);
+                });
+            } catch (error) {
+                console.error("Ошибка при перезапуске анимации:", error);
+                alert("Произошла ошибка при применении настроек. Попробуйте другие значения.");
+            }
+        }
+
+        // Обработчики событий
+        applyButton.addEventListener('click', () => {
+            restartAnimation();
+        });
+
+        randomizeButton.addEventListener('click', () => {
+            randomizeSettings();
+        });
+
+        // Инициализация слайдеров
+        document.addEventListener('DOMContentLoaded', function() {
+            // Устанавливаем начальные значения слайдеров из текущих параметров
+            document.getElementById('matrixSize').value = MATRIX_SIZE;
+            document.getElementById('groupsCount').value = GROUPS_COUNT;
+            document.getElementById('maxGroupSize').value = MAX_GROUP_SIZE;
+            document.getElementById('lifetimeMin').value = ANIMATION_PARAMS.lifetime.min;
+            document.getElementById('lifetimeMax').value = ANIMATION_PARAMS.lifetime.max;
+            document.getElementById('appearanceDuration').value = ANIMATION_PARAMS.phases.appearance.duration * 100;
+            document.getElementById('holdDuration').value = ANIMATION_PARAMS.phases.hold.duration * 100;
+            document.getElementById('fadeDuration').value = ANIMATION_PARAMS.phases.fade.duration * 100;
+            document.getElementById('minRadius').value = ANIMATION_PARAMS.centerMovement.minRadius;
+            document.getElementById('maxRadius').value = ANIMATION_PARAMS.centerMovement.maxRadius;
+            document.getElementById('evolventeFactor').value = ANIMATION_PARAMS.centerMovement.evolventeFactor;
+            document.getElementById('evolventeBaseRadius').value = ANIMATION_PARAMS.centerMovement.evolvente.baseRadius;
+            document.getElementById('evolventeUnwrapSpeed').value = ANIMATION_PARAMS.centerMovement.evolvente.unwrapSpeed * 1000;
+            document.getElementById('evolventeScaleEffect').value = ANIMATION_PARAMS.centerMovement.evolvente.scaleEffect;
+            document.getElementById('minScale').value = ANIMATION_PARAMS.groupSizing.minScale;
+            document.getElementById('maxScale').value = ANIMATION_PARAMS.groupSizing.maxScale;
+            
+            // Проверяем существование элементов перед использованием
+            const minActiveGroupsElement = document.getElementById('minActiveGroups');
+            const maxActiveGroupsElement = document.getElementById('maxActiveGroups');
+            
+            if (minActiveGroupsElement) {
+                minActiveGroupsElement.value = MIN_ACTIVE_GROUPS;
+            }
+            
+            if (maxActiveGroupsElement) {
+                maxActiveGroupsElement.value = MAX_ACTIVE_GROUPS;
+            }
+            
+            // Инициализируем слайдеры для центров групп
+            const dynamicCentersAdjustment = document.getElementById('dynamicCentersAdjustment');
+            if (dynamicCentersAdjustment) {
+                dynamicCentersAdjustment.checked = ANIMATION_PARAMS.groupCenters.dynamicAdjustment;
+            }
+            
+            const centersFactor = document.getElementById('centersFactor');
+            if (centersFactor) {
+                centersFactor.value = ANIMATION_PARAMS.groupCenters.baseFactor;
+            }
+            
+            const minCenters = document.getElementById('minCenters');
+            if (minCenters) {
+                minCenters.value = ANIMATION_PARAMS.groupCenters.minCenters;
+            }
+            
+            const maxCenters = document.getElementById('maxCenters');
+            if (maxCenters) {
+                maxCenters.value = ANIMATION_PARAMS.groupCenters.maxCenters;
+            }
+            
+            updateSliderValues();
+            setupSliderEventListeners();
+        });
+
+        // Функция для генерации случайной кривой Безье
+        function generateRandomBezier() {
+            const x1 = Math.random().toFixed(2);
+            const y1 = Math.random().toFixed(2);
+            const x2 = Math.random().toFixed(2);
+            const y2 = Math.random().toFixed(2);
+            return `cubic-bezier(${x1}, ${y1}, ${x2}, ${y2})`;
+        }
+    </script>
+</body>
+</html>

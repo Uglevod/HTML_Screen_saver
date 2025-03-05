@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #333;
+        }
+
+        .matrix-container {
+            display: grid;
+            grid-template-columns: repeat(var(--matrix-size), 1fr);
+            grid-template-rows: repeat(var(--matrix-size), 1fr);
+            gap: 1px;
+            background: #000;
+            padding: 5px;
+            border-radius: 5px;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        .cell {
+            width: 100%;
+            height: 100%;
+            background: black;
+            transition: background-color 1.5s ease-out, transform 0.3s ease-out, opacity 0.3s ease-out;
+        }
+
+        @keyframes fadeToYellow {
+            0% { background-color: black; }
+            15% { background-color: rgba(255, 235, 59, 0.1); }
+            30% { background-color: rgba(255, 235, 59, 0.3); }
+            40% { background-color: rgba(255, 235, 59, 0.4); }
+            60% { background-color: rgba(255, 235, 59, 0.4); }
+            75% { background-color: rgba(255, 235, 59, 0.3); }
+            85% { background-color: rgba(255, 235, 59, 0.2); }
+            92% { background-color: rgba(255, 235, 59, 0.1); }
+            100% { background-color: black; }
+        }
+
+        @keyframes fadeToWarmCenter {
+            0% { background-color: rgba(255, 34, 0, 0.1); }
+            10% { background-color: rgba(255, 34, 0, 0.3); }
+            20% { background-color: rgba(255, 34, 0, 0.5); }
+            30% { background-color: rgba(255, 34, 0, 0.7); }
+            40% { background-color: rgba(255, 34, 0, 0.9); }
+            50% { background-color: #ff2200; }
+            60% { background-color: #ff2200; }
+            70% { background-color: rgba(255, 34, 0, 0.9); }
+            80% { background-color: rgba(255, 34, 0, 0.7); }
+            90% { background-color: rgba(255, 34, 0, 0.4); }
+            100% { background-color: rgba(255, 34, 0, 0.1); }
+        }
+
+        @keyframes fadeToWarmMiddle {
+            0% { background-color: rgba(255, 102, 0, 0.1); }
+            10% { background-color: rgba(255, 102, 0, 0.3); }
+            20% { background-color: rgba(255, 102, 0, 0.5); }
+            30% { background-color: rgba(255, 102, 0, 0.7); }
+            40% { background-color: rgba(255, 102, 0, 0.9); }
+            50% { background-color: #ff6600; }
+            60% { background-color: #ff6600; }
+            70% { background-color: rgba(255, 102, 0, 0.8); }
+            80% { background-color: rgba(255, 102, 0, 0.6); }
+            90% { background-color: rgba(255, 102, 0, 0.3); }
+            100% { background-color: rgba(255, 102, 0, 0.1); }
+        }
+
+        @keyframes fadeToWarmOuter {
+            0% { background-color: rgba(255, 153, 0, 0.1); }
+            10% { background-color: rgba(255, 153, 0, 0.2); }
+            20% { background-color: rgba(255, 153, 0, 0.3); }
+            30% { background-color: rgba(255, 153, 0, 0.4); }
+            40% { background-color: rgba(255, 153, 0, 0.5); }
+            50% { background-color: #ff9900; }
+            60% { background-color: #ff9900; }
+            70% { background-color: rgba(255, 153, 0, 0.6); }
+            80% { background-color: rgba(255, 153, 0, 0.4); }
+            90% { background-color: rgba(255, 153, 0, 0.2); }
+            100% { background-color: rgba(255, 153, 0, 0.1); }
+        }
+
+        @keyframes fadeToEdge {
+            0% { background-color: rgba(255, 235, 59, 0.05); }
+            10% { background-color: rgba(255, 235, 59, 0.08); }
+            20% { background-color: rgba(255, 235, 59, 0.12); }
+            30% { background-color: rgba(255, 235, 59, 0.15); }
+            40% { background-color: rgba(255, 235, 59, 0.2); }
+            50% { background-color: rgba(255, 235, 59, 0.25); }
+            60% { background-color: rgba(255, 235, 59, 0.25); }
+            70% { background-color: rgba(255, 235, 59, 0.2); }
+            80% { background-color: rgba(255, 235, 59, 0.15); }
+            90% { background-color: rgba(255, 235, 59, 0.1); }
+            100% { background-color: rgba(255, 235, 59, 0.05); }
+        }
+    </style>
+</head>
+<body>
+    <div class="matrix-container" id="matrix"></div>
+
+    <script>
+        const matrix = document.getElementById('matrix');
+        const cells = [];
+        const groups = [];
+        const GROUPS_COUNT = 54;
+        const MATRIX_SIZE = 64;
+        const CELLS_COUNT = MATRIX_SIZE * MATRIX_SIZE;
+        const MAX_GROUP_SIZE = 628;
+
+        // Добавляем новые константы
+        const MIN_ACTIVE_GROUPS = 1;
+        const MAX_ACTIVE_GROUPS = 5;
+        let activeGroups = 0;
+
+        // Добавляем новую константу
+        const SIMULTANEOUS_GROUPS = Math.floor(GROUPS_COUNT * 0.7); // 70% групп могут быть активны одновременно
+
+        // Устанавливаем CSS переменную для размера матрицы
+        document.documentElement.style.setProperty('--matrix-size', MATRIX_SIZE);
+
+        // Создаем матрицу 64x64
+        for (let i = 0; i < CELLS_COUNT; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            matrix.appendChild(cell);
+            cells.push(cell);
+        }
+
+        // Добавляем параметры слияния в ANIMATION_PARAMS
+        const ANIMATION_PARAMS = {
+            // Параметры времени жизни групп
+            lifetime: {
+                min: 1500,    // минимальное время жизни группы (15 секунд)
+                max: 45000     // максимальное время жизни группы (45 секунд)
+            },
+            // Параметры пауз
+            pause: {
+                min: 200,     // минимальная пауза между анимациями
+                max: 8000,     // максимальная пауза между анимациями
+                beforeStart: {
+                    min: 200,  // минимальная пауза перед стартом
+                    max: 8000   // максимальная пауза перед стартом
+                }
+            },
+            // Параметры этапов анимации (в процентах от общей длительности)
+            phases: {
+                appearance: {
+                    duration: 0.15,    // длительность появления (15%)
+                    easing: 0.3        // плавность появления
+                },
+                hold: {
+                    duration: 0.75     // длительность удержания (65%)
+                },
+                fade: {
+                    duration: 0.2,     // длительность затухания (20%)
+                    easing: 0.4        // плавность затухания
+                }
+            },
+            // Параметры распространения
+            spread: {
+                probability: 0.7,      // вероятность распространения на соседа
+                quickRestartChance: 0.3  // шанс быстрого перезапуска
+            },
+            merge: {
+                distance: 0.2,     // Расстояние, на котором начинается слияние (в % от размера матрицы)
+                duration: 0.3,     // Длительность слияния (в % от времени жизни)
+                threshold: 10      // Минимальное расстояние для слияния
+            },
+            // Добавляем параметры для изменения размеров группы
+            groupSizing: {
+                minScale: 0.7,      // Минимальный масштаб группы при сближении
+                maxScale: 1.3,      // Максимальный масштаб группы при сближении
+                distanceEffect: 0.4  // Влияние расстояния на размер (0-1)
+            }
+        };
+
+        function getRandomDuration() {
+            return Math.random() * 
+                (ANIMATION_PARAMS.lifetime.max - ANIMATION_PARAMS.lifetime.min) + 
+                ANIMATION_PARAMS.lifetime.min;
+        }
+
+        function getRandomPauseBeforeStart() {
+            return Math.random() * 
+                (ANIMATION_PARAMS.pause.beforeStart.max - ANIMATION_PARAMS.pause.beforeStart.min) + 
+                ANIMATION_PARAMS.pause.beforeStart.min;
+        }
+
+        function getRandomDelay() {
+            return Math.random() * 
+                (ANIMATION_PARAMS.pause.max - ANIMATION_PARAMS.pause.min) + 
+                ANIMATION_PARAMS.pause.min;
+        }
+
+        function getRandomBezier() {
+            const x1 = (Math.random() * 0.2).toFixed(2);
+            const y1 = (Math.random() * 0.4).toFixed(2);
+            const x2 = (Math.random() * 0.3 + 0.4).toFixed(2);
+            const y2 = (Math.random() * 0.4 + 0.3).toFixed(2);
+            return `cubic-bezier(${x1}, ${y1}, ${x2}, ${y2})`;
+        }
+
+        function getNeighbors(index) {
+            const row = Math.floor(index / MATRIX_SIZE);
+            const col = index % MATRIX_SIZE;
+            const neighbors = [];
+            
+            [[-1,-1], [-1,0], [-1,1], [0,-1], [0,1], [1,-1], [1,0], [1,1]].forEach(([dx, dy]) => {
+                const newRow = row + dx;
+                const newCol = col + dy;
+                if (newRow >= 0 && newRow < MATRIX_SIZE && newCol >= 0 && newCol < MATRIX_SIZE) {
+                    neighbors.push(newRow * MATRIX_SIZE + newCol);
+                }
+            });
+            
+            return neighbors;
+        }
+
+        function calculateDistanceFromCenter(cell, centerCell) {
+            const cellRow = Math.floor(cell / MATRIX_SIZE);
+            const cellCol = cell % MATRIX_SIZE;
+            const centerRow = Math.floor(centerCell / MATRIX_SIZE);
+            const centerCol = centerCell % MATRIX_SIZE;
+            
+            return Math.sqrt(
+                Math.pow(cellRow - centerRow, 2) + 
+                Math.pow(cellCol - centerCol, 2)
+            );
+        }
+
+        // Функция для получения фиксированных точек появления групп
+        function getFixedStartingPoints() {
+            const gridSize = 8; // размер сетки точек появления
+            const cellsPerSection = MATRIX_SIZE / gridSize; // количество ячеек между точками
+            const offset = Math.floor(cellsPerSection / 2); // смещение от края секции
+            const points = [];
+
+            for (let row = 0; row < gridSize; row++) {
+                for (let col = 0; col < gridSize; col++) {
+                    // Вычисляем координаты точки в матрице 64x64
+                    const x = Math.floor(col * cellsPerSection + offset);
+                    const y = Math.floor(row * cellsPerSection + offset);
+                    points.push(y * MATRIX_SIZE + x);
+                }
+            }
+            return points;
+        }
+
+        function createGroup(groupId, usedCells, availableStartPoints) {
+            const group = {
+                id: groupId,
+                cells: [],
+                cellsWithDistance: [],
+                duration: getRandomDuration(),
+                delay: getRandomDelay(),
+                bezier: getRandomBezier()
+            };
+
+            // Выбираем случайную точку из доступных фиксированных точек
+            const startPointIndex = Math.floor(Math.random() * availableStartPoints.length);
+            const startCell = availableStartPoints[startPointIndex];
+            // Удаляем использованную точку
+            availableStartPoints.splice(startPointIndex, 1);
+
+            const groupCells = new Set([startCell]);
+            const queue = [startCell];
+
+            while (queue.length > 0 && groupCells.size < MAX_GROUP_SIZE) {
+                const current = queue.shift();
+                getNeighbors(current).forEach(neighbor => {
+                    if (!usedCells.has(neighbor) && !groupCells.has(neighbor) && 
+                        Math.random() < ANIMATION_PARAMS.spread.probability) {
+                        groupCells.add(neighbor);
+                        queue.push(neighbor);
+                    }
+                });
+            }
+
+            groupCells.forEach(cellIndex => {
+                const distance = calculateDistanceFromCenter(cellIndex, startCell);
+                group.cellsWithDistance.push({
+                    cell: cells[cellIndex],
+                    distance: distance,
+                    index: cellIndex
+                });
+                usedCells.add(cellIndex);
+            });
+
+            group.cellsWithDistance.sort((a, b) => a.distance - b.distance);
+            group.cells = group.cellsWithDistance.map(item => item.cell);
+
+            return group;
+        }
+
+        function initializeGroups() {
+            const usedCells = new Set();
+            const startingPoints = getFixedStartingPoints();
+
+            // Создаем группы только в доступных точках
+            while (groups.length < GROUPS_COUNT && startingPoints.length > 0) {
+                groups.push(createGroup(groups.length, usedCells, startingPoints));
+            }
+
+            // Распределяем оставшиеся ячейки
+            cells.forEach((cell, index) => {
+                if (!usedCells.has(index)) {
+                    const randomGroup = groups[Math.floor(Math.random() * groups.length)];
+                    randomGroup.cells.push(cell);
+                }
+            });
+        }
+
+        function getRandomInitialDelay() {
+            // Используем параметры из ANIMATION_PARAMS
+            return Math.random() * 
+                (ANIMATION_PARAMS.pause.beforeStart.max * 2 - ANIMATION_PARAMS.pause.beforeStart.min) + 
+                ANIMATION_PARAMS.pause.beforeStart.min;
+        }
+
+        function updateActiveGroups(delta) {
+            activeGroups += delta;
+            return activeGroups;
+        }
+
+        // Добавляем структуру для хранения активных групп и их центров
+        const activeGroupCenters = new Map(); // Map(groupId => {x, y, lastUpdate})
+
+        // Добавляем структуру для отслеживания пар центров
+        const centerPairs = new Map(); // Map(groupId => {partnerId, status})
+
+        function findOrCreatePair(groupId, currentCenter) {
+            // Если уже есть пара
+            if (centerPairs.has(groupId)) {
+                const pair = centerPairs.get(groupId);
+                if (activeGroupCenters.has(pair.partnerId)) {
+                    return activeGroupCenters.get(pair.partnerId);
+                }
+                // Если партнер исчез, удаляем пару
+                centerPairs.delete(groupId);
+            }
+            
+            // Ищем новую пару
+            let bestPartner = null;
+            let minDistance = Infinity;
+            let bestPartnerId = null;
+
+            activeGroupCenters.forEach((center, potentialPartnerId) => {
+                if (potentialPartnerId !== groupId && !centerPairs.has(potentialPartnerId)) {
+                    const distance = Math.sqrt(
+                        Math.pow(center.x - currentCenter.x, 2) + 
+                        Math.pow(center.y - currentCenter.y, 2)
+                    );
+                    if (distance > 0 && distance < minDistance) {
+                        minDistance = distance;
+                        bestPartner = center;
+                        bestPartnerId = potentialPartnerId;
+                    }
+                }
+            });
+
+            if (bestPartner) {
+                // Создаем взаимную связь между центрами
+                centerPairs.set(groupId, { partnerId: bestPartnerId, status: 'active' });
+                centerPairs.set(bestPartnerId, { partnerId: groupId, status: 'active' });
+            }
+
+            return bestPartner;
+        }
+
+        function updateGroupCenter(groupId, center) {
+            activeGroupCenters.set(groupId, {
+                x: center.x,
+                y: center.y,
+                lastUpdate: Date.now()
+            });
+        }
+
+        function removeInactiveGroupCenters() {
+            const now = Date.now();
+            activeGroupCenters.forEach((data, groupId) => {
+                if (now - data.lastUpdate > 2000) {
+                    // Удаляем пару при исчезновении центра
+                    if (centerPairs.has(groupId)) {
+                        const pair = centerPairs.get(groupId);
+                        centerPairs.delete(pair.partnerId);
+                        centerPairs.delete(groupId);
+                    }
+                    activeGroupCenters.delete(groupId);
+                }
+            });
+        }
+
+        function findNearestGroupCenter(currentCenter) {
+            let nearest = null;
+            let minDistance = Infinity;
+
+            removeInactiveGroupCenters();
+            
+            activeGroupCenters.forEach((center) => {
+                const distance = Math.sqrt(
+                    Math.pow(center.x - currentCenter.x, 2) + 
+                    Math.pow(center.y - currentCenter.y, 2)
+                );
+                if (distance > 0 && distance < minDistance) {
+                    minDistance = distance;
+                    nearest = center;
+                }
+            });
+
+            return nearest;
+        }
+
+        function calculateNewCenterPosition(currentCenter, targetCenter, progress) {
+            if (!targetCenter) return currentCenter;
+
+            const dx = targetCenter.x - currentCenter.x;
+            const dy = targetCenter.y - currentCenter.y;
+            
+            return {
+                x: currentCenter.x + dx * progress,
+                y: currentCenter.y + dy * progress
+            };
+        }
+
+        function shouldMergeGroups(distance) {
+            const mergeThreshold = MATRIX_SIZE * ANIMATION_PARAMS.merge.distance;
+            return distance < mergeThreshold && distance > 0;
+        }
+
+        function animateGroupMerge(cell, sourceCenter, targetCenter, progress, duration) {
+            const mergeProgress = Math.min(1, progress / ANIMATION_PARAMS.merge.duration);
+            const scale = 1 + (0.5 * mergeProgress); // Увеличение размера при слиянии
+            const opacity = 1 - (0.7 * mergeProgress); // Уменьшение прозрачности
+
+            cell.style.transform = `scale(${scale})`;
+            cell.style.opacity = opacity;
+
+            if (mergeProgress >= 1) {
+                cell.style.animation = '';
+                cell.style.transform = '';
+                cell.style.opacity = '';
+                return true; // Слияние завершено
+            }
+            return false;
+        }
+
+        function calculateGroupScale(currentCenter, partnerCenter, maxDistance) {
+            if (!partnerCenter) return 1.0; // Стандартный масштаб
+
+            const distance = Math.sqrt(
+                Math.pow(partnerCenter.x - currentCenter.x, 2) + 
+                Math.pow(partnerCenter.y - currentCenter.y, 2)
+            );
+
+            // Нормализуем расстояние относительно размера матрицы
+            const normalizedDistance = Math.min(1, distance / (MATRIX_SIZE * 0.5));
+            
+            // Вычисляем масштаб на основе расстояния
+            // Чем ближе группы, тем больше масштаб
+            const distanceEffect = ANIMATION_PARAMS.groupSizing.distanceEffect;
+            const scale = ANIMATION_PARAMS.groupSizing.maxScale - 
+                (normalizedDistance * (ANIMATION_PARAMS.groupSizing.maxScale - ANIMATION_PARAMS.groupSizing.minScale));
+            
+            return Math.max(ANIMATION_PARAMS.groupSizing.minScale, 
+                   Math.min(ANIMATION_PARAMS.groupSizing.maxScale, scale));
+        }
+
+        function animateGroup(group) {
+            const animate = () => {
+                updateActiveGroups(1);
+                let isMerging = false;
+                let mergePartner = null;
+
+                setTimeout(() => {
+                    const maxDistance = group.cellsWithDistance[group.cellsWithDistance.length - 1].distance;
+                    const centerCell = group.cellsWithDistance[0].index;
+                    const currentCenter = {
+                        x: Math.floor(centerCell / MATRIX_SIZE),
+                        y: centerCell % MATRIX_SIZE
+                    };
+
+                    updateGroupCenter(group.id, currentCenter);
+                    removeInactiveGroupCenters();
+                    
+                    const partnerCenter = findOrCreatePair(group.id, currentCenter);
+                    const currentLifetime = getRandomDuration();
+                    
+                    // Вычисляем масштаб группы на основе расстояния до партнера
+                    const groupScale = calculateGroupScale(currentCenter, partnerCenter, maxDistance);
+                    
+                    if (partnerCenter) {
+                        const distanceToPartner = Math.sqrt(
+                            Math.pow(partnerCenter.x - currentCenter.x, 2) + 
+                            Math.pow(partnerCenter.y - currentCenter.y, 2)
+                        );
+
+                        isMerging = shouldMergeGroups(distanceToPartner);
+                        if (isMerging) {
+                            mergePartner = partnerCenter;
+                        }
+                    }
+
+                    group.cellsWithDistance.forEach(({cell, distance, index}) => {
+                        // Масштабируем расстояние в зависимости от текущего масштаба группы
+                        const scaledDistance = distance * groupScale;
+                        const progress = scaledDistance / (maxDistance * groupScale);
+                        const spreadDelay = progress * (currentLifetime * ANIMATION_PARAMS.phases.appearance.duration);
+
+                        const animate = (timestamp) => {
+                            const animationProgress = (timestamp - startTime) / currentLifetime;
+                            if (animationProgress <= 1) {
+                                const newCenter = calculateNewCenterPosition(
+                                    currentCenter, 
+                                    partnerCenter,
+                                    animationProgress
+                                );
+
+                                // Динамически пересчитываем масштаб группы
+                                const currentGroupScale = calculateGroupScale(
+                                    newCenter, 
+                                    partnerCenter, 
+                                    maxDistance
+                                );
+
+                                // Пересчитываем расстояние с учетом текущего масштаба
+                                const newDistance = Math.sqrt(
+                                    Math.pow(Math.floor(index / MATRIX_SIZE) - newCenter.x, 2) + 
+                                    Math.pow(index % MATRIX_SIZE - newCenter.y, 2)
+                                ) * currentGroupScale;
+
+                                // Определяем тип анимации на основе масштабированного расстояния
+                                let animationType;
+                                const scaledMaxDistance = maxDistance * currentGroupScale;
+                                
+                                if (newDistance < scaledMaxDistance * 0.2) {
+                                    animationType = 'fadeToWarmCenter';
+                                } else if (newDistance < scaledMaxDistance * 0.4) {
+                                    animationType = 'fadeToWarmMiddle';
+                                } else if (newDistance < scaledMaxDistance * 0.7) {
+                                    animationType = 'fadeToWarmOuter';
+                                } else {
+                                    animationType = 'fadeToEdge';
+                                }
+
+                                cell.style.animation = `${animationType} ${currentLifetime}ms ${group.bezier}`;
+
+                                if (isMerging && mergePartner && 
+                                    animationProgress > (1 - ANIMATION_PARAMS.merge.duration)) {
+                                    const mergeProgress = (animationProgress - (1 - ANIMATION_PARAMS.merge.duration)) / 
+                                        ANIMATION_PARAMS.merge.duration;
+                                    animateGroupMerge(cell, currentCenter, mergePartner, mergeProgress, currentLifetime);
+                                }
+
+                                requestAnimationFrame(animate);
+                            }
+                        };
+
+                        const startTime = performance.now() + spreadDelay;
+                        setTimeout(() => requestAnimationFrame(animate), spreadDelay);
+                    });
+
+                    setTimeout(() => {
+                        const currentActive = updateActiveGroups(-1);
+                        group.duration = getRandomDuration();
+                        group.bezier = getRandomBezier();
+
+                        // После слияния удаляем пару
+                        if (isMerging && centerPairs.has(group.id)) {
+                            const pair = centerPairs.get(group.id);
+                            centerPairs.delete(pair.partnerId);
+                            centerPairs.delete(group.id);
+                        }
+
+                        let nextIterationDelay;
+                        if (isMerging) {
+                            // Увеличиваем задержку после слияния
+                            nextIterationDelay = getRandomDelay() * 2 + currentLifetime;
+                        } else if (currentActive < MIN_ACTIVE_GROUPS) {
+                            nextIterationDelay = getRandomPauseBeforeStart();
+                        } else if (currentActive > MAX_ACTIVE_GROUPS) {
+                            nextIterationDelay = getRandomDelay() + currentLifetime;
+                        } else {
+                            nextIterationDelay = Math.random() < ANIMATION_PARAMS.spread.quickRestartChance ? 
+                                getRandomPauseBeforeStart() : 
+                                getRandomDelay() + currentLifetime * 0.5;
+                        }
+
+                        setTimeout(animate, nextIterationDelay);
+                    }, currentLifetime);
+                }, getRandomPauseBeforeStart());
+            };
+
+            animate();
+        }
+
+        // Изменяем начальный запуск групп
+        initializeGroups();
+        const initialDelays = Array(groups.length).fill(0)
+            .map((_, i) => {
+                if (i < MIN_ACTIVE_GROUPS) {
+                    // Первые группы запускаем быстро
+                    return getRandomInitialDelay() * 0.5;
+                } else if (i < SIMULTANEOUS_GROUPS) {
+                    // Следующие группы с нормальной задержкой
+                    return getRandomInitialDelay();
+                } else {
+                    // Остальные группы с увеличенной задержкой
+                    return getRandomInitialDelay() * 2;
+                }
+            });
+        
+        groups.forEach((group, index) => {
+            setTimeout(() => animateGroup(group), initialDelays[index]);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .matrix-container {
+            display: grid;
+            grid-template-columns: repeat(8, 50px);
+            grid-template-rows: repeat(8, 50px);
+            gap: 2px;
+            background: #333;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .cell {
+            width: 50px;
+            height: 50px;
+            background: black;
+            transition: background-color 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="matrix-container" id="matrix"></div>
+
+    <script>
+        const matrix = document.getElementById('matrix');
+        const cells = [];
+
+        // Создаем матрицу 8x8
+        for (let i = 0; i < 64; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            matrix.appendChild(cell);
+            cells.push(cell);
+        }
+
+        // Функция для получения случайного времени
+        function getRandomDelay() {
+            return Math.random() * 2000 + 6000; // от 1 до 3 секунды
+        }
+
+        // Функция для анимации отдельной ячейки
+        function animateCell(cell) {
+            const yellow = '#ffeb3b';
+            const black = '#000000';
+            
+            // Плавное появление желтого цвета
+            cell.style.backgroundColor = yellow;
+            
+            setTimeout(() => {
+                // Плавное исчезновение обратно в черный
+                cell.style.backgroundColor = black;
+                
+                // Планируем следующую анимацию
+                setTimeout(() => animateCell(cell), getRandomDelay());
+            }, getRandomDelay());
+        }
+
+        // Запускаем анимацию для каждой ячейки с случайной задержкой
+        cells.forEach(cell => {
+            setTimeout(() => animateCell(cell), getRandomDelay());
+        });
+    </script>
+</body>
+</html>

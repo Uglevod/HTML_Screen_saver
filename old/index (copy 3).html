@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #333;
+        }
+
+        .matrix-container {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            gap: 2px;
+            background: #333;
+            padding: 10px;
+            border-radius: 5px;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .cell {
+            width: 100%;
+            height: 100%;
+            background: black;
+        }
+
+        @keyframes fadeToYellow {
+            0% { background-color: black; }
+            50% { background-color: #ffeb3b; }
+            100% { background-color: black; }
+        }
+    </style>
+</head>
+<body>
+    <div class="matrix-container" id="matrix"></div>
+
+    <script>
+        const matrix = document.getElementById('matrix');
+        const cells = [];
+        const groups = [];
+        const GROUPS_COUNT = 4;
+
+        // Создаем матрицу 8x8
+        for (let i = 0; i < 64; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            matrix.appendChild(cell);
+            cells.push(cell);
+        }
+
+        function getRandomDelay() {
+            return Math.random() * 5000 + 8000;
+        }
+
+        function getRandomDuration() {
+            return Math.random() * 8000 + 4000;
+        }
+
+        function getRandomBezier() {
+            const x1 = (Math.random() * 0.4).toFixed(2);
+            const y1 = (Math.random() * 0.8).toFixed(2);
+            const x2 = (Math.random() * 0.4 + 0.6).toFixed(2);
+            const y2 = (Math.random() * 0.8).toFixed(2);
+            return `cubic-bezier(${x1}, ${y1}, ${x2}, ${y2})`;
+        }
+
+        function getNeighbors(index) {
+            const row = Math.floor(index / 8);
+            const col = index % 8;
+            const neighbors = [];
+            
+            [[-1,-1], [-1,0], [-1,1], [0,-1], [0,1], [1,-1], [1,0], [1,1]].forEach(([dx, dy]) => {
+                const newRow = row + dx;
+                const newCol = col + dy;
+                if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
+                    neighbors.push(newRow * 8 + newCol);
+                }
+            });
+            
+            return neighbors;
+        }
+
+        function createGroup(groupId, usedCells) {
+            const group = {
+                id: groupId,
+                cells: [],
+                duration: getRandomDuration(),
+                delay: getRandomDelay(),
+                bezier: getRandomBezier()
+            };
+
+            let startCell;
+            do {
+                startCell = Math.floor(Math.random() * 64);
+            } while (usedCells.has(startCell));
+
+            const groupCells = new Set([startCell]);
+            const queue = [startCell];
+
+            while (queue.length > 0 && groupCells.size < 16) {
+                const current = queue.shift();
+                getNeighbors(current).forEach(neighbor => {
+                    if (!usedCells.has(neighbor) && !groupCells.has(neighbor) && Math.random() < 0.7) {
+                        groupCells.add(neighbor);
+                        queue.push(neighbor);
+                    }
+                });
+            }
+
+            groupCells.forEach(cellIndex => {
+                group.cells.push(cells[cellIndex]);
+                usedCells.add(cellIndex);
+            });
+
+            return group;
+        }
+
+        function initializeGroups() {
+            const usedCells = new Set();
+
+            // Создаем основные группы
+            for (let i = 0; i < GROUPS_COUNT; i++) {
+                groups.push(createGroup(i, usedCells));
+            }
+
+            // Распределяем оставшиеся ячейки
+            cells.forEach((cell, index) => {
+                if (!usedCells.has(index)) {
+                    const randomGroup = groups[Math.floor(Math.random() * GROUPS_COUNT)];
+                    randomGroup.cells.push(cell);
+                }
+            });
+        }
+
+        function animateGroup(group) {
+            const animate = () => {
+                group.cells.forEach(cell => {
+                    cell.style.animation = `fadeToYellow ${group.duration}ms ${group.bezier}`;
+                });
+
+                setTimeout(() => {
+                    group.cells.forEach(cell => {
+                        cell.style.animation = '';
+                    });
+                    
+                    group.duration = getRandomDuration();
+                    group.bezier = getRandomBezier();
+                    
+                    setTimeout(animate, group.delay);
+                }, group.duration);
+            };
+
+            animate();
+        }
+
+        // Инициализация и запуск
+        initializeGroups();
+        groups.forEach((group, index) => {
+            setTimeout(() => animateGroup(group), index * 1000);
+        });
+    </script>
+</body>
+</html>

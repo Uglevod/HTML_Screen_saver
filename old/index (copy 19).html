@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #333;
+        }
+
+        .matrix-container {
+            display: grid;
+            grid-template-columns: repeat(var(--matrix-size), 1fr);
+            grid-template-rows: repeat(var(--matrix-size), 1fr);
+            gap: 1px;
+            background: #000;
+            padding: 5px;
+            border-radius: 5px;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        .cell {
+            width: 100%;
+            height: 100%;
+            background: black;
+            transition: background-color 1.5s ease-out;
+        }
+
+        @keyframes fadeToYellow {
+            0% { background-color: black; }
+            15% { background-color: rgba(255, 235, 59, 0.1); }
+            30% { background-color: rgba(255, 235, 59, 0.3); }
+            40% { background-color: rgba(255, 235, 59, 0.4); }
+            60% { background-color: rgba(255, 235, 59, 0.4); }
+            75% { background-color: rgba(255, 235, 59, 0.3); }
+            85% { background-color: rgba(255, 235, 59, 0.2); }
+            92% { background-color: rgba(255, 235, 59, 0.1); }
+            100% { background-color: black; }
+        }
+
+        @keyframes fadeToWarmCenter {
+            0% { background-color: rgba(255, 34, 0, 0.1); }
+            10% { background-color: rgba(255, 34, 0, 0.3); }
+            20% { background-color: rgba(255, 34, 0, 0.5); }
+            30% { background-color: rgba(255, 34, 0, 0.7); }
+            40% { background-color: rgba(255, 34, 0, 0.9); }
+            50% { background-color: #ff2200; }
+            60% { background-color: #ff2200; }
+            70% { background-color: rgba(255, 34, 0, 0.9); }
+            80% { background-color: rgba(255, 34, 0, 0.7); }
+            90% { background-color: rgba(255, 34, 0, 0.4); }
+            100% { background-color: rgba(255, 34, 0, 0.1); }
+        }
+
+        @keyframes fadeToWarmMiddle {
+            0% { background-color: rgba(255, 102, 0, 0.1); }
+            10% { background-color: rgba(255, 102, 0, 0.3); }
+            20% { background-color: rgba(255, 102, 0, 0.5); }
+            30% { background-color: rgba(255, 102, 0, 0.7); }
+            40% { background-color: rgba(255, 102, 0, 0.9); }
+            50% { background-color: #ff6600; }
+            60% { background-color: #ff6600; }
+            70% { background-color: rgba(255, 102, 0, 0.8); }
+            80% { background-color: rgba(255, 102, 0, 0.6); }
+            90% { background-color: rgba(255, 102, 0, 0.3); }
+            100% { background-color: rgba(255, 102, 0, 0.1); }
+        }
+
+        @keyframes fadeToWarmOuter {
+            0% { background-color: rgba(255, 153, 0, 0.1); }
+            10% { background-color: rgba(255, 153, 0, 0.2); }
+            20% { background-color: rgba(255, 153, 0, 0.3); }
+            30% { background-color: rgba(255, 153, 0, 0.4); }
+            40% { background-color: rgba(255, 153, 0, 0.5); }
+            50% { background-color: #ff9900; }
+            60% { background-color: #ff9900; }
+            70% { background-color: rgba(255, 153, 0, 0.6); }
+            80% { background-color: rgba(255, 153, 0, 0.4); }
+            90% { background-color: rgba(255, 153, 0, 0.2); }
+            100% { background-color: rgba(255, 153, 0, 0.1); }
+        }
+
+        @keyframes fadeToEdge {
+            0% { background-color: rgba(255, 235, 59, 0.05); }
+            10% { background-color: rgba(255, 235, 59, 0.08); }
+            20% { background-color: rgba(255, 235, 59, 0.12); }
+            30% { background-color: rgba(255, 235, 59, 0.15); }
+            40% { background-color: rgba(255, 235, 59, 0.2); }
+            50% { background-color: rgba(255, 235, 59, 0.25); }
+            60% { background-color: rgba(255, 235, 59, 0.25); }
+            70% { background-color: rgba(255, 235, 59, 0.2); }
+            80% { background-color: rgba(255, 235, 59, 0.15); }
+            90% { background-color: rgba(255, 235, 59, 0.1); }
+            100% { background-color: rgba(255, 235, 59, 0.05); }
+        }
+    </style>
+</head>
+<body>
+    <div class="matrix-container" id="matrix"></div>
+
+    <script>
+        const matrix = document.getElementById('matrix');
+        const cells = [];
+        const groups = [];
+        const GROUPS_COUNT = 54;
+        const MATRIX_SIZE = 256;
+        const CELLS_COUNT = MATRIX_SIZE * MATRIX_SIZE;
+        const MAX_GROUP_SIZE = 1428;
+
+        // Изменяем константы для более длительного отображения
+        const MIN_GROUP_LIFETIME = 15000;  // минимальное время жизни группы (15 секунд)
+        const MAX_GROUP_LIFETIME = 45000;  // максимальное время жизни группы (45 секунд)
+        const MIN_PAUSE = 2000;           // минимальная пауза между анимациями
+        const MAX_PAUSE = 8000;           // максимальная пауза между анимациями
+        const SIMULTANEOUS_GROUPS = Math.floor(GROUPS_COUNT * 0.7); // 70% групп могут быть активны одновременно
+
+        // Добавляем новые константы
+        const MIN_ACTIVE_GROUPS = 1;
+        const MAX_ACTIVE_GROUPS = 5;
+        let activeGroups = 0;
+
+        // Устанавливаем CSS переменную для размера матрицы
+        document.documentElement.style.setProperty('--matrix-size', MATRIX_SIZE);
+
+        // Создаем матрицу 64x64
+        for (let i = 0; i < CELLS_COUNT; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            matrix.appendChild(cell);
+            cells.push(cell);
+        }
+
+        function getRandomDelay() {
+            return Math.random() * 3000 + MIN_PAUSE;
+        }
+
+        function getRandomDuration() {
+            return Math.random() * (MAX_GROUP_LIFETIME - MIN_GROUP_LIFETIME) + MIN_GROUP_LIFETIME;
+        }
+
+        function getRandomBezier() {
+            const x1 = (Math.random() * 0.2).toFixed(2);
+            const y1 = (Math.random() * 0.4).toFixed(2);
+            const x2 = (Math.random() * 0.3 + 0.4).toFixed(2);
+            const y2 = (Math.random() * 0.4 + 0.3).toFixed(2);
+            return `cubic-bezier(${x1}, ${y1}, ${x2}, ${y2})`;
+        }
+
+        function getNeighbors(index) {
+            const row = Math.floor(index / MATRIX_SIZE);
+            const col = index % MATRIX_SIZE;
+            const neighbors = [];
+            
+            [[-1,-1], [-1,0], [-1,1], [0,-1], [0,1], [1,-1], [1,0], [1,1]].forEach(([dx, dy]) => {
+                const newRow = row + dx;
+                const newCol = col + dy;
+                if (newRow >= 0 && newRow < MATRIX_SIZE && newCol >= 0 && newCol < MATRIX_SIZE) {
+                    neighbors.push(newRow * MATRIX_SIZE + newCol);
+                }
+            });
+            
+            return neighbors;
+        }
+
+        function calculateDistanceFromCenter(cell, centerCell) {
+            const cellRow = Math.floor(cell / MATRIX_SIZE);
+            const cellCol = cell % MATRIX_SIZE;
+            const centerRow = Math.floor(centerCell / MATRIX_SIZE);
+            const centerCol = centerCell % MATRIX_SIZE;
+            
+            return Math.sqrt(
+                Math.pow(cellRow - centerRow, 2) + 
+                Math.pow(cellCol - centerCol, 2)
+            );
+        }
+
+        // Функция для получения фиксированных точек появления групп
+        function getFixedStartingPoints() {
+            const gridSize = 8; // размер сетки точек появления
+            const cellsPerSection = MATRIX_SIZE / gridSize; // количество ячеек между точками
+            const offset = Math.floor(cellsPerSection / 2); // смещение от края секции
+            const points = [];
+
+            for (let row = 0; row < gridSize; row++) {
+                for (let col = 0; col < gridSize; col++) {
+                    // Вычисляем координаты точки в матрице 64x64
+                    const x = Math.floor(col * cellsPerSection + offset);
+                    const y = Math.floor(row * cellsPerSection + offset);
+                    points.push(y * MATRIX_SIZE + x);
+                }
+            }
+            return points;
+        }
+
+        function createGroup(groupId, usedCells, availableStartPoints) {
+            const group = {
+                id: groupId,
+                cells: [],
+                cellsWithDistance: [],
+                duration: getRandomDuration(),
+                delay: getRandomDelay(),
+                bezier: getRandomBezier()
+            };
+
+            // Выбираем случайную точку из доступных фиксированных точек
+            const startPointIndex = Math.floor(Math.random() * availableStartPoints.length);
+            const startCell = availableStartPoints[startPointIndex];
+            // Удаляем использованную точку
+            availableStartPoints.splice(startPointIndex, 1);
+
+            const groupCells = new Set([startCell]);
+            const queue = [startCell];
+
+            while (queue.length > 0 && groupCells.size < MAX_GROUP_SIZE) {
+                const current = queue.shift();
+                getNeighbors(current).forEach(neighbor => {
+                    if (!usedCells.has(neighbor) && !groupCells.has(neighbor) && Math.random() < 0.7) {
+                        groupCells.add(neighbor);
+                        queue.push(neighbor);
+                    }
+                });
+            }
+
+            groupCells.forEach(cellIndex => {
+                const distance = calculateDistanceFromCenter(cellIndex, startCell);
+                group.cellsWithDistance.push({
+                    cell: cells[cellIndex],
+                    distance: distance,
+                    index: cellIndex
+                });
+                usedCells.add(cellIndex);
+            });
+
+            group.cellsWithDistance.sort((a, b) => a.distance - b.distance);
+            group.cells = group.cellsWithDistance.map(item => item.cell);
+
+            return group;
+        }
+
+        function initializeGroups() {
+            const usedCells = new Set();
+            const startingPoints = getFixedStartingPoints();
+
+            // Создаем группы только в доступных точках
+            while (groups.length < GROUPS_COUNT && startingPoints.length > 0) {
+                groups.push(createGroup(groups.length, usedCells, startingPoints));
+            }
+
+            // Распределяем оставшиеся ячейки
+            cells.forEach((cell, index) => {
+                if (!usedCells.has(index)) {
+                    const randomGroup = groups[Math.floor(Math.random() * groups.length)];
+                    randomGroup.cells.push(cell);
+                }
+            });
+        }
+
+        function getRandomInitialDelay() {
+            return Math.random() * 15000 + 5000; // от 5 до 20 секунд начальной задержки
+        }
+
+        function getRandomPauseBeforeStart() {
+            return Math.random() * (MAX_PAUSE - MIN_PAUSE) + MIN_PAUSE;
+        }
+
+        function updateActiveGroups(delta) {
+            activeGroups += delta;
+            return activeGroups;
+        }
+
+        function animateGroup(group) {
+            const animate = () => {
+                // Увеличиваем счетчик активных групп
+                updateActiveGroups(1);
+
+                setTimeout(() => {
+                    const maxDistance = group.cellsWithDistance[group.cellsWithDistance.length - 1].distance;
+                    const spreadDurationPercent = 0.15;
+                    const fadeDurationPercent = 0.2;
+                    
+                    const centerThreshold = maxDistance * 0.2;
+                    const middleThreshold = maxDistance * 0.4;
+                    const outerThreshold = maxDistance * 0.7;
+
+                    const currentLifetime = getRandomDuration();
+                    const holdDuration = currentLifetime * 0.65;
+
+                    group.cellsWithDistance.forEach(({cell, distance}) => {
+                        const spreadDelay = (distance / maxDistance) * (currentLifetime * spreadDurationPercent);
+                        
+                        let animationType;
+                        if (distance < centerThreshold) {
+                            animationType = 'fadeToWarmCenter';
+                        } else if (distance < middleThreshold) {
+                            animationType = 'fadeToWarmMiddle';
+                        } else if (distance < outerThreshold) {
+                            animationType = 'fadeToWarmOuter';
+                        } else {
+                            animationType = 'fadeToEdge';
+                        }
+                        
+                        setTimeout(() => {
+                            cell.style.animation = `${animationType} ${currentLifetime}ms ${group.bezier}`;
+                        }, spreadDelay);
+
+                        const fadeStartTime = holdDuration;
+                        const fadeDelay = fadeStartTime + 
+                            ((1 - distance / maxDistance) * (currentLifetime * fadeDurationPercent));
+
+                        setTimeout(() => {
+                            cell.style.animation = '';
+                        }, fadeDelay);
+                    });
+
+                    setTimeout(() => {
+                        // Уменьшаем счетчик активных групп
+                        const currentActive = updateActiveGroups(-1);
+                        
+                        group.duration = getRandomDuration();
+                        group.bezier = getRandomBezier();
+
+                        // Определяем задержку следующей анимации на основе количества активных групп
+                        let nextIterationDelay;
+                        
+                        if (currentActive < MIN_ACTIVE_GROUPS) {
+                            // Если активных групп меньше минимума, запускаем быстро
+                            nextIterationDelay = getRandomPauseBeforeStart();
+                        } else if (currentActive > MAX_ACTIVE_GROUPS) {
+                            // Если активных групп больше максимума, увеличиваем задержку
+                            nextIterationDelay = getRandomDelay() + currentLifetime;
+                        } else {
+                            // Стандартная логика с вероятностью быстрого перезапуска
+                            nextIterationDelay = Math.random() < 0.3 ? 
+                                getRandomPauseBeforeStart() : 
+                                getRandomDelay() + currentLifetime * 0.5;
+                        }
+
+                        setTimeout(animate, nextIterationDelay);
+                    }, currentLifetime);
+
+                }, getRandomPauseBeforeStart());
+            };
+
+            animate();
+        }
+
+        // Изменяем начальный запуск групп
+        initializeGroups();
+        const initialDelays = Array(groups.length).fill(0)
+            .map((_, i) => {
+                if (i < MIN_ACTIVE_GROUPS) {
+                    // Первые группы запускаем быстро
+                    return getRandomInitialDelay() * 0.5;
+                } else if (i < SIMULTANEOUS_GROUPS) {
+                    // Следующие группы с нормальной задержкой
+                    return getRandomInitialDelay();
+                } else {
+                    // Остальные группы с увеличенной задержкой
+                    return getRandomInitialDelay() * 2;
+                }
+            });
+        
+        groups.forEach((group, index) => {
+            setTimeout(() => animateGroup(group), initialDelays[index]);
+        });
+    </script>
+</body>
+</html>
